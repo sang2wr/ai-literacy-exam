@@ -1,8 +1,8 @@
 import streamlit as st
-from utils.database import get_user_exams, get_exam_answers
 import json
 from pathlib import Path
 from datetime import datetime
+from utils.database import get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result
 
 st.set_page_config(
     page_title="내 결과 | AI리터러시지도사",
@@ -51,26 +51,73 @@ for exam in submitted:
             pass
 
     with st.expander(f"📄 시험 결과 — {submitted_at}  |  상태: {status_label}", expanded=True):
-        mc = exam.get("mc_score", 0) or 0
-        sa = exam.get("sa_score") or 0
+        mc_correct_total = exam.get("mc_score", 0) or 0
         practical = exam.get("practical_score")
         p_result = exam.get("practical_result", "")
         p_notes = exam.get("practical_notes", "")
+        written_result = exam.get("written_result") or ""
 
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("객관식 점수", f"{mc} / 72점")
-        col2.metric("주관식 점수", f"{sa} / 16점" if exam["status"] == "graded" else "채점 전")
+        # ── 합격 판정 배너 ──────────────────────────────────────────────────
         if exam["status"] == "graded":
-            col3.metric("실기 점수", f"{practical}점" if practical is not None else "-")
-            col4.metric("실기 결과", p_result or "-")
+            if p_result == "합격" and written_result == "합격":
+                st.success("🎉 최종 합격! 필기 합격 + 실기 합격")
+            elif written_result == "합격" and not p_result:
+                st.info("✅ 필기 합격 — 실기 시험 대상자입니다.")
+            elif written_result == "탈락":
+                st.error("❌ 필기 불합격")
+            elif p_result == "불합격":
+                st.error("❌ 실기 불합격")
         else:
-            col3.metric("실기 점수", "채점 전")
-            col4.metric("실기 결과", "채점 전")
+            st.warning("⏳ 채점 대기 중 — 주관식 채점 후 합격 여부가 확정됩니다.")
 
-        if exam["status"] == "graded" and p_notes:
-            st.info(f"📝 강사 코멘트: {p_notes}")
+        # ── 필기 점수 요약 ───────────────────────────────────────────────────
+        st.markdown("#### 📊 필기시험 점수")
 
-        # Show written exam answers
+        # Per-area breakdown
+        area_mc = get_area_mc_scores(exam["id"])
+        try:
+            area_sa = {int(k): v for k, v in json.loads(exam.get("sa_scores") or "{}").items()}
+        except Exception:
+            area_sa = {}
+
+        area_cols = st.columns(4)
+        area_totals = {}
+        for i, area in enumerate(areas):
+            aid = area["area_id"]
+            mc_pts = area_mc.get(aid, 0) * 5
+            sa_pts = area_sa.get(aid, 0)
+            total_pts = mc_pts + sa_pts
+            area_totals[aid] = total_pts
+            pass_mark = "✅" if total_pts >= 50 else "❌"
+            with area_cols[i]:
+                st.metric(
+                    f"분야{aid} {pass_mark}",
+                    f"{total_pts}점 / 100점",
+                    f"MC {mc_pts}pt + SA {sa_pts}pt" if area_sa else f"MC {mc_pts}pt",
+                )
+
+        if area_totals:
+            avg = sum(area_totals.values()) / 4
+            c1, c2, c3 = st.columns(3)
+            c1.metric("필기 평균", f"{avg:.1f}점")
+            c2.metric("필기 합격 기준", "평균 60점 이상 & 분야별 50점 이상")
+            c3.metric("필기 결과", written_result or ("채점 전" if exam["status"] != "graded" else "-"))
+        else:
+            st.caption(f"객관식 정답 수: {mc_correct_total} / 72문제 ({mc_correct_total * 5}점 / 360점)")
+
+        # ── 실기 점수 ────────────────────────────────────────────────────────
+        if exam["status"] == "graded":
+            st.markdown("#### 🎤 실기시험")
+            if written_result == "합격":
+                col1, col2 = st.columns(2)
+                col1.metric("실기 점수", f"{practical}점" if practical is not None else "-")
+                col2.metric("실기 결과", p_result or "-")
+                if p_notes:
+                    st.info(f"📝 강사 코멘트: {p_notes}")
+            else:
+                st.caption("필기 불합격으로 실기 시험 대상이 아닙니다.")
+
+        # ── 내 답안 보기 ─────────────────────────────────────────────────────
         if st.checkbox("📖 내 답안 보기", key=f"show_{exam['id']}"):
             answers = get_exam_answers(exam["id"])
             ans_map = {a["question_id"]: a for a in answers}
@@ -82,7 +129,6 @@ for exam in submitted:
                     ans_row = ans_map.get(qid)
                     if q["type"] == "mc":
                         user_idx = ans_row["answer_text"] if ans_row else None
-                        correct_idx = str(q.get("correct", -1))
                         is_correct = ans_row["is_correct"] if ans_row else False
                         icon = "✅" if is_correct else "❌"
                         try:

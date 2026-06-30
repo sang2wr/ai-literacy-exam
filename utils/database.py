@@ -1,5 +1,6 @@
 from supabase import create_client, Client
 import streamlit as st
+import json
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
 
@@ -130,6 +131,51 @@ def get_exam_answers(exam_id: str) -> List[Dict]:
         return []
 
 
+def get_area_mc_scores(exam_id: str) -> Dict[int, int]:
+    """Returns {area_id: correct_mc_count} for each area."""
+    try:
+        res = (
+            get_client()
+            .table("answers")
+            .select("area_id, is_correct")
+            .eq("exam_id", exam_id)
+            .execute()
+        )
+        scores: Dict[int, int] = {}
+        for row in (res.data or []):
+            if row.get("is_correct"):
+                aid = int(row["area_id"])
+                scores[aid] = scores.get(aid, 0) + 1
+        return scores
+    except Exception:
+        return {}
+
+
+def calculate_written_result(
+    area_mc_correct: Dict[int, int],
+    area_sa_pts: Dict[int, int],
+) -> tuple:
+    """
+    area_mc_correct: {area_id: number_of_correct_mc_answers}  (0-18 each)
+    area_sa_pts:     {area_id: sa_points}                     (0-10 each)
+    Returns (result: str, area_totals: dict)
+      result: '합격' or '탈락'
+      area_totals: {area_id: total_score}  (0-100 each)
+    """
+    area_totals: Dict[int, int] = {}
+    for aid in [1, 2, 3, 4]:
+        mc_pts = area_mc_correct.get(aid, 0) * 5   # 18 MC × 5pt max = 90
+        sa_pts = area_sa_pts.get(aid, 0)            # 2 SA × 5pt max = 10
+        area_totals[aid] = mc_pts + sa_pts
+
+    # 분야별 50점 미만 탈락
+    if any(s < 50 for s in area_totals.values()):
+        return "탈락", area_totals
+
+    avg = sum(area_totals.values()) / 4
+    return ("합격" if avg >= 60 else "탈락"), area_totals
+
+
 def get_exam_by_id(exam_id: str) -> Optional[Dict]:
     try:
         res = get_client().table("exams").select("*").eq("id", exam_id).limit(1).execute()
@@ -153,16 +199,22 @@ def update_practical_score(
     practical_score: Optional[int],
     practical_result: str,
     practical_notes: str,
-    sa_score: int,
+    sa_scores_dict: Dict[int, int],   # {1: pts, 2: pts, 3: pts, 4: pts}
 ) -> bool:
+    """Save scores, calculate per-area totals, and determine written_result."""
     try:
-        total = (0 if practical_score is None else practical_score)
+        sa_score_total = sum(sa_scores_dict.values())
+        area_mc = get_area_mc_scores(exam_id)
+        written_result, _ = calculate_written_result(area_mc, sa_scores_dict)
+
         get_client().table("exams").update({
             "practical_score": practical_score,
             "practical_result": practical_result,
             "practical_notes": practical_notes,
-            "sa_score": sa_score,
-            "total_score": total,
+            "sa_score": sa_score_total,
+            "sa_scores": json.dumps({str(k): v for k, v in sa_scores_dict.items()}),
+            "written_result": written_result,
+            "total_score": practical_score or 0,
             "status": "graded",
         }).eq("id", exam_id).execute()
         return True

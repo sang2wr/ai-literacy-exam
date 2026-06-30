@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
-from utils.database import get_all_exams_with_users, get_exam_answers, update_practical_score, delete_exam
+from utils.database import (
+    get_all_exams_with_users, get_exam_answers, update_practical_score,
+    delete_exam, get_area_mc_scores, calculate_written_result,
+)
 import json
 from pathlib import Path
 from datetime import datetime
@@ -59,6 +62,15 @@ with tab1:
                 submitted_at = dt.strftime("%Y-%m-%d %H:%M")
             except Exception:
                 pass
+            mc_pts = (e.get("mc_score") or 0) * 5
+            sa_pts = e.get("sa_score") or 0
+            written = e.get("written_result") or "-"
+            p_result = e.get("practical_result") or "-"
+            final = "최종합격" if (written == "합격" and p_result == "합격") else (
+                "필기합격(실기대상)" if written == "합격" else (
+                    "탈락" if written == "탈락" else "-"
+                )
+            )
             rows.append({
                 "ID": e["id"][:8] + "...",
                 "이름": u.get("name", "-"),
@@ -66,10 +78,12 @@ with tab1:
                 "연락처": u.get("phone", "-"),
                 "제출일시": submitted_at,
                 "상태": {"submitted": "채점 대기", "graded": "채점 완료"}.get(e["status"], e["status"]),
-                "객관식": e.get("mc_score", 0),
-                "주관식": e.get("sa_score", "-"),
-                "실기점수": e.get("practical_score", "-"),
-                "실기결과": e.get("practical_result", "-"),
+                "MC(점)": mc_pts,
+                "SA(점)": sa_pts,
+                "필기결과": written,
+                "실기점수": e.get("practical_score") or "-",
+                "실기결과": p_result,
+                "최종결과": final,
             })
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -142,10 +156,21 @@ with tab2:
     ans_map = {a["question_id"]: a for a in answers}
     u = exam.get("users") or {}
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("응시자", u.get("name", "-"))
-    col2.metric("객관식 자동점수", f"{exam.get('mc_score', 0)} / 72점")
+    col2.metric("객관식 자동 (총합)", f"{exam.get('mc_score', 0) * 5}점 / 360점")
     col3.metric("현재 상태", {"submitted": "채점 대기", "graded": "채점 완료"}.get(exam["status"], exam["status"]))
+    col4.metric("필기 결과", exam.get("written_result") or "미채점")
+
+    # Per-area MC score breakdown
+    area_mc = get_area_mc_scores(exam["id"])
+    st.markdown("**분야별 객관식 점수**")
+    mc_cols = st.columns(4)
+    for i, area in enumerate(areas):
+        aid = area["area_id"]
+        correct = area_mc.get(aid, 0)
+        pts = correct * 5
+        mc_cols[i].metric(f"분야{aid} MC", f"{pts}점 / 90점", f"{correct}/18 정답")
 
     # Show short-answer questions for manual review
     st.markdown("### 📝 주관식 답안 검토")
@@ -168,13 +193,33 @@ with tab2:
 
     # Scoring form
     st.markdown("### 🎯 점수 입력")
+
+    # Load existing per-area SA scores
+    import json as _json
+    _existing_sa = {}
+    try:
+        _existing_sa = {int(k): v for k, v in _json.loads(exam.get("sa_scores") or "{}").items()}
+    except Exception:
+        pass
+
     with st.form(f"score_form_{exam['id']}"):
-        sa_score = st.number_input(
-            "주관식 점수 (0~16점)",
-            min_value=0, max_value=16,
-            value=exam.get("sa_score") or 0,
-            step=1,
-        )
+        st.markdown("**주관식 점수 (분야별, 각 0~10점)**")
+        st.caption("각 분야 주관식 2문제 × 5점 = 최대 10점")
+        sa_cols = st.columns(4)
+        sa_vals = {}
+        for i, area in enumerate(areas):
+            aid = area["area_id"]
+            with sa_cols[i]:
+                sa_vals[aid] = st.number_input(
+                    f"분야{aid} 주관식",
+                    min_value=0, max_value=10,
+                    value=_existing_sa.get(aid, 0),
+                    step=1,
+                    key=f"sa_{aid}_{exam['id']}",
+                )
+
+        st.divider()
+        st.markdown("**실기시험 (필기 합격자만)**")
         practical_score = st.number_input(
             "실기 점수",
             min_value=0, max_value=100,
@@ -191,7 +236,7 @@ with tab2:
             value=exam.get("practical_notes") or "",
             height=80,
         )
-        save = st.form_submit_button("💾 저장", type="primary", use_container_width=True)
+        save = st.form_submit_button("💾 저장 및 합격 판정", type="primary", use_container_width=True)
 
     if save:
         ok = update_practical_score(
@@ -199,10 +244,14 @@ with tab2:
             int(practical_score),
             practical_result,
             practical_notes,
-            int(sa_score),
+            {k: int(v) for k, v in sa_vals.items()},
         )
         if ok:
-            st.success("저장되었습니다!")
+            # Preview calculated result
+            _area_mc = get_area_mc_scores(exam["id"])
+            _written, _area_totals = calculate_written_result(_area_mc, {k: int(v) for k, v in sa_vals.items()})
+            st.success(f"저장 완료! 필기 판정: **{_written}**")
+            st.caption(f"분야별 점수: {', '.join(f'분야{k}: {v}점' for k, v in sorted(_area_totals.items()))}")
             st.cache_data.clear()
         else:
             st.error("저장 중 오류가 발생했습니다.")
