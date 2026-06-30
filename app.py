@@ -198,17 +198,17 @@ if st.session_state.logged_in and st.session_state.user:
     if is_admin:
         st.markdown("""
         <div class="nav-grid nav-grid-3">
-            <a class="nav-btn nav-btn-primary" href="/1_시험보기" target="_self">
+            <a class="nav-btn nav-btn-primary" href="/1_exam" target="_self">
                 <div class="nav-icon">✏️</div>
                 <span class="nav-label">시험 응시하기</span>
                 <span class="nav-desc">자격시험 시작</span>
             </a>
-            <a class="nav-btn" href="/2_내결과" target="_self">
+            <a class="nav-btn" href="/2_results" target="_self">
                 <div class="nav-icon">📋</div>
                 <span class="nav-label">내 결과 보기</span>
                 <span class="nav-desc">점수 및 합격 확인</span>
             </a>
-            <a class="nav-btn" href="/3_관리자패널" target="_self">
+            <a class="nav-btn" href="/3_admin" target="_self">
                 <div class="nav-icon">📊</div>
                 <span class="nav-label">관리자 패널</span>
                 <span class="nav-desc">채점 및 결과 관리</span>
@@ -218,12 +218,12 @@ if st.session_state.logged_in and st.session_state.user:
     else:
         st.markdown("""
         <div class="nav-grid nav-grid-2">
-            <a class="nav-btn nav-btn-primary" href="/1_시험보기" target="_self">
+            <a class="nav-btn nav-btn-primary" href="/1_exam" target="_self">
                 <div class="nav-icon">✏️</div>
                 <span class="nav-label">시험 응시하기</span>
                 <span class="nav-desc">자격시험 시작</span>
             </a>
-            <a class="nav-btn" href="/2_내결과" target="_self">
+            <a class="nav-btn" href="/2_results" target="_self">
                 <div class="nav-icon">📋</div>
                 <span class="nav-label">내 결과 보기</span>
                 <span class="nav-desc">점수 및 합격 확인</span>

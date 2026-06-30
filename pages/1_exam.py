@@ -170,7 +170,7 @@ if st.session_state.get("exam_submitted"):
         st.success("시험이 성공적으로 제출되었습니다!")
     st.metric("객관식 자동 채점 점수", f"{score}점 / 72점")
     st.info("주관식 및 실기 점수는 관리자가 채점 후 반영됩니다.")
-    st.page_link("pages/2_내결과.py", label="📋 내 결과 보기")
+    st.page_link("pages/2_results.py", label="📋 내 결과 보기")
     st.stop()
 
 # ── Pre-exam ──────────────────────────────────────────────────────────────────

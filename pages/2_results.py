@@ -37,7 +37,7 @@ submitted = [e for e in exams if e["status"] in ("submitted", "graded")]
 
 if not submitted:
     st.info("아직 제출된 시험 기록이 없습니다.")
-    st.page_link("pages/1_시험보기.py", label="✏️ 시험 응시하러 가기")
+    st.page_link("pages/1_exam.py", label="✏️ 시험 응시하러 가기")
     st.stop()
 
 for exam in submitted:
