@@ -35,7 +35,7 @@ q_map = {q["id"]: q for area in areas for q in area["questions"]}
 st.title("📊 관리자 패널")
 st.caption("시험 결과 관리 및 점수 입력")
 
-tab1, tab2 = st.tabs(["📋 전체 결과 목록", "✏️ 점수 입력 / 채점"])
+tab1, tab2, tab3 = st.tabs(["📋 전체 결과 목록", "✏️ 점수 입력 / 채점", "📝 정답표"])
 
 # ── Tab 1: Summary table ──────────────────────────────────────────────────────
 with tab1:
@@ -168,3 +168,64 @@ with tab2:
             st.cache_data.clear()
         else:
             st.error("저장 중 오류가 발생했습니다.")
+
+# ── Tab 3: 정답표 ─────────────────────────────────────────────────────────────
+with tab3:
+    st.markdown("### 📝 객관식 정답표")
+    st.caption("객관식 72문제 정답 목록입니다. 주관식은 관리자가 직접 채점합니다.")
+
+    for area in areas:
+        mc_qs = [q for q in area["questions"] if q["type"] == "mc"]
+        sa_qs = [q for q in area["questions"] if q["type"] == "sa"]
+
+        with st.expander(f"📚 분야 {area['area_id']}: {area['area_name']}  ({len(mc_qs)}문항)", expanded=False):
+            # MC 정답표
+            rows = []
+            for q in mc_qs:
+                correct_idx = q.get("correct", 0)
+                correct_text = q["options"][correct_idx]
+                num = "①②③④"[correct_idx]
+                rows.append({
+                    "번호": q["id"],
+                    "문제": q["text"][:40] + ("..." if len(q["text"]) > 40 else ""),
+                    "정답": f"{num} {correct_text}",
+                })
+            df = pd.DataFrame(rows)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
+            # SA 문제
+            st.markdown("**주관식 문제** (수동 채점)")
+            for q in sa_qs:
+                st.markdown(f"- **{q['id']}번:** {q['text']}")
+
+    # 전체 정답 CSV 다운로드
+    st.divider()
+    all_rows = []
+    for area in areas:
+        for q in area["questions"]:
+            if q["type"] == "mc":
+                correct_idx = q.get("correct", 0)
+                all_rows.append({
+                    "분야": area["area_name"],
+                    "번호": q["id"],
+                    "유형": "객관식",
+                    "문제": q["text"],
+                    "정답번호": correct_idx + 1,
+                    "정답내용": q["options"][correct_idx],
+                })
+            else:
+                all_rows.append({
+                    "분야": area["area_name"],
+                    "번호": q["id"],
+                    "유형": "주관식",
+                    "문제": q["text"],
+                    "정답번호": "-",
+                    "정답내용": "수동 채점",
+                })
+    csv = pd.DataFrame(all_rows).to_csv(index=False, encoding="utf-8-sig")
+    st.download_button(
+        "📥 전체 정답표 CSV 다운로드",
+        data=csv,
+        file_name="정답표.csv",
+        mime="text/csv",
+    )
