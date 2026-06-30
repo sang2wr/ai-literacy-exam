@@ -130,6 +130,24 @@ def get_exam_answers(exam_id: str) -> List[Dict]:
         return []
 
 
+def get_exam_by_id(exam_id: str) -> Optional[Dict]:
+    try:
+        res = get_client().table("exams").select("*").eq("id", exam_id).limit(1).execute()
+        return res.data[0] if res.data else None
+    except Exception:
+        return None
+
+
+def delete_exam(exam_id: str) -> bool:
+    try:
+        get_client().table("answers").delete().eq("exam_id", exam_id).execute()
+        get_client().table("exams").delete().eq("id", exam_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"삭제 오류: {e}")
+        return False
+
+
 def update_practical_score(
     exam_id: str,
     practical_score: Optional[int],

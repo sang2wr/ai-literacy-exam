@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.database import get_all_exams_with_users, get_exam_answers, update_practical_score
+from utils.database import get_all_exams_with_users, get_exam_answers, update_practical_score, delete_exam
 import json
 from pathlib import Path
 from datetime import datetime
@@ -39,14 +39,17 @@ tab1, tab2, tab3 = st.tabs(["📋 전체 결과 목록", "✏️ 점수 입력 /
 
 # ── Tab 1: Summary table ──────────────────────────────────────────────────────
 with tab1:
-    if st.button("🔄 새로고침"):
-        st.cache_data.clear()
-        st.rerun()
+    col_refresh, col_info = st.columns([1, 4])
+    with col_refresh:
+        if st.button("🔄 새로고침"):
+            st.cache_data.clear()
+            st.rerun()
 
     exams = get_all_exams_with_users()
     if not exams:
         st.info("제출된 시험이 없습니다.")
     else:
+        # ── 요약 테이블 ───────────────────────────────────────────────────────
         rows = []
         for e in exams:
             u = e.get("users") or {}
@@ -79,6 +82,41 @@ with tab1:
             file_name="시험결과.csv",
             mime="text/csv",
         )
+
+        # ── 기록 삭제 ──────────────────────────────────────────────────────
+        st.divider()
+        st.markdown("### 🗑 기록 삭제 (재시험 허용)")
+        st.caption("삭제 후에는 응시자가 다시 시험을 볼 수 있습니다. 삭제된 기록은 복구할 수 없습니다.")
+
+        for e in exams:
+            u = e.get("users") or {}
+            name = u.get("name", "-")
+            email = u.get("email", "-")
+            submitted_at = e.get("submitted_at", "")[:16]
+            exam_id = e["id"]
+            status_label = {"submitted": "채점 대기", "graded": "채점 완료"}.get(e["status"], e["status"])
+
+            col_info, col_btn = st.columns([5, 1])
+            with col_info:
+                st.markdown(f"**{name}** ({email}) | {submitted_at} | {status_label} | 객관식 {e.get('mc_score', 0)}점")
+            with col_btn:
+                if st.button("🗑 삭제", key=f"del_{exam_id}"):
+                    st.session_state[f"confirm_del_{exam_id}"] = True
+
+            if st.session_state.get(f"confirm_del_{exam_id}"):
+                st.warning(f"⚠️ **{name}**님의 시험 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("✅ 삭제 확인", key=f"confirm_yes_{exam_id}", type="primary"):
+                        if delete_exam(exam_id):
+                            st.success("삭제되었습니다. 응시자가 재시험을 볼 수 있습니다.")
+                            st.session_state.pop(f"confirm_del_{exam_id}", None)
+                            st.cache_data.clear()
+                            st.rerun()
+                with c2:
+                    if st.button("❌ 취소", key=f"confirm_no_{exam_id}"):
+                        st.session_state.pop(f"confirm_del_{exam_id}", None)
+                        st.rerun()
 
 # ── Tab 2: Grade individual exam ──────────────────────────────────────────────
 with tab2:

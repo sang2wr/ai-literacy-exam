@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import json
 import time
 from pathlib import Path
-from utils.database import get_active_exam, create_exam, submit_exam
+from utils.database import get_active_exam, create_exam, submit_exam, get_exam_by_id
 
 st.set_page_config(
     page_title="시험 응시 | AI리터러시지도사",
@@ -33,6 +33,12 @@ def load_questions():
 areas = load_questions()
 
 # ── Check existing exam ───────────────────────────────────────────────────────
+if "exam_id" in st.session_state:
+    # Validate the exam still exists in DB (could have been deleted by admin)
+    if not get_exam_by_id(st.session_state.exam_id):
+        for k in ["exam_id", "exam_start_time", "answers", "exam_submitted", "mc_score"]:
+            st.session_state.pop(k, None)
+
 if "exam_id" not in st.session_state:
     existing = get_active_exam(user_id)
     if existing:
@@ -59,7 +65,7 @@ def show_pre_exam():
     | 총 문항 수 | **80문제** (4개 분야 × 20문제) |
     | 객관식 | 각 분야 18문제 (4지선다) |
     | 주관식 | 각 분야 2문제 (단답형) |
-    | 제한 시간 | **80분** |
+    | 제한 시간 | **90분** |
     | 시험 방식 | 시간 초과 시 자동 제출 |
 
     ### 분야 구성
