@@ -199,7 +199,8 @@ def update_practical_score(
     practical_score: Optional[int],
     practical_result: str,
     practical_notes: str,
-    sa_scores_dict: Dict[int, int],   # {1: pts, 2: pts, 3: pts, 4: pts}
+    sa_scores_dict: Dict[int, int],          # {area_id: area_sa_total}
+    sa_scores_per_q: Optional[Dict] = None,  # {question_id: score 0-5}
 ) -> bool:
     """Save scores, calculate per-area totals, and determine written_result."""
     try:
@@ -207,12 +208,14 @@ def update_practical_score(
         area_mc = get_area_mc_scores(exam_id)
         written_result, _ = calculate_written_result(area_mc, sa_scores_dict)
 
+        # Store per-question detail when available
+        scores_to_store = sa_scores_per_q if sa_scores_per_q else sa_scores_dict
         get_client().table("exams").update({
             "practical_score": practical_score,
             "practical_result": practical_result,
             "practical_notes": practical_notes,
             "sa_score": sa_score_total,
-            "sa_scores": json.dumps({str(k): v for k, v in sa_scores_dict.items()}),
+            "sa_scores": json.dumps({str(k): v for k, v in scores_to_store.items()}),
             "written_result": written_result,
             "total_score": practical_score or 0,
             "status": "graded",

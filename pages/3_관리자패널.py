@@ -137,124 +137,191 @@ with tab2:
     exams_all = get_all_exams_with_users()
     if not exams_all:
         st.info("채점할 시험이 없습니다.")
-        st.stop()
+    else:
+        # ── 응시자 선택 ───────────────────────────────────────────────────────
+        options = {}
+        for e in exams_all:
+            u = e.get("users") or {}
+            label = f"{u.get('name','?')} ({u.get('email','?')})  —  {e.get('submitted_at','')[:16]}  [{e['status']}]"
+            options[label] = e
 
-    # Selector
-    options = {}
-    for e in exams_all:
-        u = e.get("users") or {}
-        label = f"{u.get('name','?')} ({u.get('email','?')})  —  {e.get('submitted_at','')[:16]}  [{e['status']}]"
-        options[label] = e
+        selected_label = st.selectbox("채점할 응시자 선택", list(options.keys()))
+        exam = options[selected_label]
+        exam_id = exam["id"]
+        u = exam.get("users") or {}
 
-    selected_label = st.selectbox("채점할 응시자 선택", list(options.keys()))
-    exam = options[selected_label]
+        # ── 기존 주관식 점수 로드 (문항별) ───────────────────────────────────
+        existing_q_scores: Dict[int, int] = {}
+        try:
+            raw = json.loads(exam.get("sa_scores") or "{}")
+            for k, v in raw.items():
+                k_int = int(k)
+                # 문항 ID는 항상 > 4 (분야 ID는 1~4)
+                if k_int > 4:
+                    existing_q_scores[k_int] = int(v)
+        except Exception:
+            pass
 
-    st.divider()
+        # 전체 주관식 문항 목록
+        sa_qs_all = [q for area in areas for q in area["questions"] if q["type"] == "sa"]
 
-    # Load answers
-    answers = get_exam_answers(exam["id"])
-    ans_map = {a["question_id"]: a for a in answers}
-    u = exam.get("users") or {}
+        # session_state 초기화 (문항별, 시험별 고유 key)
+        for q in sa_qs_all:
+            sk = f"sa_q_{exam_id}_{q['id']}"
+            if sk not in st.session_state:
+                st.session_state[sk] = existing_q_scores.get(q["id"], 0)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("응시자", u.get("name", "-"))
-    col2.metric("객관식 자동 (총합)", f"{exam.get('mc_score', 0) * 5}점 / 360점")
-    col3.metric("현재 상태", {"submitted": "채점 대기", "graded": "채점 완료"}.get(exam["status"], exam["status"]))
-    col4.metric("필기 결과", exam.get("written_result") or "미채점")
+        # ── 객관식 점수 계산 ──────────────────────────────────────────────────
+        area_mc = get_area_mc_scores(exam_id)
+        mc_pts_total = sum(v * 5 for v in area_mc.values())
 
-    # Per-area MC score breakdown
-    area_mc = get_area_mc_scores(exam["id"])
-    st.markdown("**분야별 객관식 점수**")
-    mc_cols = st.columns(4)
-    for i, area in enumerate(areas):
-        aid = area["area_id"]
-        correct = area_mc.get(aid, 0)
-        pts = correct * 5
-        mc_cols[i].metric(f"분야{aid} MC", f"{pts}점 / 90점", f"{correct}/18 정답")
+        # 현재 주관식 총점 (실시간)
+        sa_pts_total = sum(
+            st.session_state.get(f"sa_q_{exam_id}_{q['id']}", 0)
+            for q in sa_qs_all
+        )
+        written_subtotal = mc_pts_total + sa_pts_total
 
-    # Show short-answer questions for manual review
-    st.markdown("### 📝 주관식 답안 검토")
-    sa_qs = [q for area in areas for q in area["questions"] if q["type"] == "sa"]
-    for q in sa_qs:
-        qid = q["id"]
-        area_name = next((a["area_name"] for a in areas for aq in a["questions"] if aq["id"] == qid), "")
-        ans_row = ans_map.get(qid)
-        user_ans = ans_row["answer_text"] if ans_row else "미응답"
-        with st.container():
-            st.markdown(f"**{qid}번 [{area_name}]** {q['text']}")
-            st.text_area(
-                "응시자 답안",
-                value=user_ans or "미응답",
-                height=100,
-                disabled=True,
-                key=f"sa_view_{qid}",
-            )
+        # ── 실시간 점수 헤더 ──────────────────────────────────────────────────
         st.divider()
+        h1, h2, h3, h4 = st.columns(4)
+        h1.metric("응시자", u.get("name", "-"))
+        h2.metric("객관식 합계", f"{mc_pts_total}점 / 360점")
+        h3.metric("주관식 합계", f"{sa_pts_total}점 / 40점")
+        h4.metric(
+            "필기 소계",
+            f"{written_subtotal}점 / 400점",
+            delta=f"평균 {written_subtotal/4:.1f}점",
+        )
 
-    # Scoring form
-    st.markdown("### 🎯 점수 입력")
-
-    # Load existing per-area SA scores
-    import json as _json
-    _existing_sa = {}
-    try:
-        _existing_sa = {int(k): v for k, v in _json.loads(exam.get("sa_scores") or "{}").items()}
-    except Exception:
-        pass
-
-    with st.form(f"score_form_{exam['id']}"):
-        st.markdown("**주관식 점수 (분야별, 각 0~10점)**")
-        st.caption("각 분야 주관식 2문제 × 5점 = 최대 10점")
-        sa_cols = st.columns(4)
-        sa_vals = {}
+        # 분야별 MC 점수
+        st.markdown("**분야별 객관식 점수**")
+        mc_cols = st.columns(4)
         for i, area in enumerate(areas):
             aid = area["area_id"]
-            with sa_cols[i]:
-                sa_vals[aid] = st.number_input(
-                    f"분야{aid} 주관식",
-                    min_value=0, max_value=10,
-                    value=_existing_sa.get(aid, 0),
-                    step=1,
-                    key=f"sa_{aid}_{exam['id']}",
-                )
+            correct = area_mc.get(aid, 0)
+            pts = correct * 5
+            mc_cols[i].metric(f"분야{aid} MC", f"{pts}점/90점", f"{correct}/18")
 
         st.divider()
-        st.markdown("**실기시험 (필기 합격자만)**")
-        practical_score = st.number_input(
-            "실기 점수",
-            min_value=0, max_value=100,
-            value=exam.get("practical_score") or 0,
-            step=1,
-        )
-        practical_result = st.selectbox(
-            "실기 결과",
-            ["", "합격", "불합격"],
-            index=["", "합격", "불합격"].index(exam.get("practical_result") or ""),
-        )
-        practical_notes = st.text_area(
-            "강사 코멘트 (선택)",
-            value=exam.get("practical_notes") or "",
-            height=80,
-        )
-        save = st.form_submit_button("💾 저장 및 합격 판정", type="primary", use_container_width=True)
 
-    if save:
-        ok = update_practical_score(
-            exam["id"],
-            int(practical_score),
-            practical_result,
-            practical_notes,
-            {k: int(v) for k, v in sa_vals.items()},
-        )
-        if ok:
-            # Preview calculated result
-            _area_mc = get_area_mc_scores(exam["id"])
-            _written, _area_totals = calculate_written_result(_area_mc, {k: int(v) for k, v in sa_vals.items()})
-            st.success(f"저장 완료! 필기 판정: **{_written}**")
-            st.caption(f"분야별 점수: {', '.join(f'분야{k}: {v}점' for k, v in sorted(_area_totals.items()))}")
-            st.cache_data.clear()
-        else:
-            st.error("저장 중 오류가 발생했습니다.")
+        # ── 주관식 채점 (답안 + 점수 입력 인라인) ────────────────────────────
+        st.markdown("### 📝 주관식 채점")
+        answers = get_exam_answers(exam_id)
+        ans_map = {a["question_id"]: a for a in answers}
+
+        for area in areas:
+            sa_qs = [q for q in area["questions"] if q["type"] == "sa"]
+            if not sa_qs:
+                continue
+
+            # 분야별 SA 소계
+            area_sa_pts = sum(
+                st.session_state.get(f"sa_q_{exam_id}_{q['id']}", 0)
+                for q in sa_qs
+            )
+            area_mc_pts = area_mc.get(area["area_id"], 0) * 5
+            area_total = area_mc_pts + area_sa_pts
+            badge = "✅" if area_total >= 50 else "❌"
+
+            with st.expander(
+                f"**분야 {area['area_id']}: {area['area_name']}**  "
+                f"{badge} {area_total}/100점  (MC {area_mc_pts} + SA {area_sa_pts})",
+                expanded=True,
+            ):
+                for q in sa_qs:
+                    qid = q["id"]
+                    sk = f"sa_q_{exam_id}_{qid}"
+                    ans_row = ans_map.get(qid)
+                    user_ans = (ans_row["answer_text"] if ans_row else "") or ""
+
+                    col_q, col_score = st.columns([5, 1])
+                    with col_q:
+                        st.markdown(f"**{qid}번.** {q['text']}")
+                        if q.get("answer"):
+                            st.caption(f"📌 예시 답안: {q['answer'][:80]}{'...' if len(q.get('answer','')) > 80 else ''}")
+                        st.text_area(
+                            "응시자 답안",
+                            value=user_ans or "미응답",
+                            height=90,
+                            disabled=True,
+                            key=f"view_{exam_id}_{qid}",
+                        )
+                    with col_score:
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        st.number_input(
+                            "점수",
+                            min_value=0, max_value=5,
+                            step=1,
+                            key=sk,
+                            help="0~5점 (5점 만점)",
+                        )
+
+        # ── 저장 폼 (실기 점수 + 최종 제출) ──────────────────────────────────
+        st.divider()
+        st.markdown("### 💾 저장 및 실기 점수 입력")
+
+        with st.form(f"save_form_{exam_id}"):
+            st.markdown("**실기시험 (필기 합격자만)**")
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                practical_score = st.number_input(
+                    "실기 점수",
+                    min_value=0, max_value=100,
+                    value=exam.get("practical_score") or 0,
+                    step=1,
+                )
+            with col_p2:
+                practical_result = st.selectbox(
+                    "실기 결과",
+                    ["", "합격", "불합격"],
+                    index=["", "합격", "불합격"].index(exam.get("practical_result") or ""),
+                )
+            practical_notes = st.text_area(
+                "강사 코멘트 (선택)",
+                value=exam.get("practical_notes") or "",
+                height=70,
+            )
+            save = st.form_submit_button(
+                "💾 점수 저장 및 합격 판정",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if save:
+            # 문항별 SA 점수 수집
+            sa_per_q: Dict[int, int] = {
+                q["id"]: int(st.session_state.get(f"sa_q_{exam_id}_{q['id']}", 0))
+                for q in sa_qs_all
+            }
+            # 분야별 SA 집계 (calculate_written_result용)
+            sa_per_area: Dict[int, int] = {}
+            for area in areas:
+                aid = area["area_id"]
+                sa_per_area[aid] = sum(
+                    sa_per_q.get(q["id"], 0)
+                    for q in area["questions"] if q["type"] == "sa"
+                )
+
+            ok = update_practical_score(
+                exam_id,
+                int(practical_score),
+                practical_result,
+                practical_notes,
+                sa_per_area,
+                sa_per_q,
+            )
+            if ok:
+                _written, _area_totals = calculate_written_result(area_mc, sa_per_area)
+                st.success(f"저장 완료!  필기 판정: **{_written}**")
+                st.caption(
+                    "  |  ".join(
+                        f"분야{k}: {v}점" for k, v in sorted(_area_totals.items())
+                    )
+                )
+                st.cache_data.clear()
+            else:
+                st.error("저장 중 오류가 발생했습니다.")
 
 # ── Tab 3: 정답표 ─────────────────────────────────────────────────────────────
 with tab3:
