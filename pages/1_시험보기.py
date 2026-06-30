@@ -198,8 +198,43 @@ with col_timer:
 
 st.divider()
 
+# ── Tab CSS (더 돋보이게) ─────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* 탭 버튼 기본 */
+button[data-baseweb="tab"] {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    padding: 12px 20px !important;
+    border-radius: 10px 10px 0 0 !important;
+    background: #1e2a3a !important;
+    color: #aac8e8 !important;
+    border: 2px solid #2e4a6a !important;
+    border-bottom: none !important;
+    margin-right: 6px !important;
+    transition: all 0.2s !important;
+}
+button[data-baseweb="tab"]:hover {
+    background: #2a3f5f !important;
+    color: #ffffff !important;
+}
+button[aria-selected="true"][data-baseweb="tab"] {
+    background: #1565C0 !important;
+    color: #ffffff !important;
+    border-color: #1565C0 !important;
+    box-shadow: 0 -3px 10px rgba(21,101,192,0.4) !important;
+}
+div[data-baseweb="tab-list"] {
+    background: transparent !important;
+    gap: 4px !important;
+    border-bottom: 2px solid #1565C0 !important;
+    padding-bottom: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Question tabs ─────────────────────────────────────────────────────────────
-tabs = st.tabs([f"📚 {a['area_name']}" for a in areas])
+tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
 
 for tab, area in zip(tabs, areas):
     with tab:
@@ -245,6 +280,57 @@ total_answered = sum(
 )
 st.caption(f"📝 응답 완료: {total_answered} / 80문제")
 st.progress(total_answered / 80)
+
+# ── 분야별 이동 탭 (최종 제출 위) ─────────────────────────────────────────────
+area_btns_html = ""
+for i, area in enumerate(areas):
+    qs = area["questions"]
+    answered = sum(1 for q in qs if st.session_state.answers.get(q["id"]) not in [None, ""])
+    total_q = len(qs)
+    done = answered == total_q
+    bg = "#1b5e20" if done else "#1565C0"
+    border = "#4caf50" if done else "#42a5f5"
+    status_icon = "✅" if done else "📝"
+    area_btns_html += f"""
+    <button onclick="goToArea({i})" style="
+        background:{bg}; color:#fff; border:2px solid {border};
+        padding:14px 10px; border-radius:12px; cursor:pointer;
+        font-size:0.9rem; font-weight:700; width:100%;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:all 0.2s;
+        line-height:1.5;
+    " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        {status_icon} 분야 {i+1}<br>
+        <span style="font-size:0.78rem;font-weight:500">{area['area_name']}</span><br>
+        <span style="font-size:0.75rem;opacity:0.85">{answered}/{total_q} 응답</span>
+    </button>"""
+
+nav_html = f"""
+<div style="margin:8px 0 20px 0;">
+    <div style="
+        background:#0d1b2a; border:1.5px solid #1e3a5f;
+        border-radius:14px; padding:16px; margin-bottom:4px;
+    ">
+        <p style="color:#90caf9;font-weight:700;font-size:1rem;margin:0 0 12px 0;">
+            🗂 분야별 바로 이동
+        </p>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+            {area_btns_html}
+        </div>
+    </div>
+</div>
+<script>
+function goToArea(idx) {{
+    var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+    if (tabs && tabs[idx]) {{
+        tabs[idx].click();
+        setTimeout(function() {{
+            window.parent.scrollTo({{top: 0, behavior: 'smooth'}});
+        }}, 100);
+    }}
+}}
+</script>
+"""
+components.html(nav_html, height=165)
 
 # ── Submit button ─────────────────────────────────────────────────────────────
 st.markdown("### 최종 제출")
