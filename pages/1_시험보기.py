@@ -12,17 +12,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-EXAM_MINUTES = 80
+EXAM_MINUTES = 90
 EXAM_SECONDS = EXAM_MINUTES * 60
 
 # ── Auth guard ────────────────────────────────────────────────────────────────
 if not st.session_state.get("logged_in") or not st.session_state.get("user"):
     st.warning("로그인이 필요합니다.")
     st.page_link("app.py", label="로그인 페이지로 이동")
-    st.stop()
-
-if st.session_state.user.get("is_admin"):
-    st.warning("관리자 계정으로는 시험을 응시할 수 없습니다.")
     st.stop()
 
 user = st.session_state.user

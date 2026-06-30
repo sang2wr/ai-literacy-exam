@@ -21,8 +21,14 @@ if st.session_state.logged_in and st.session_state.user:
     st.success(f"환영합니다, **{user['name']}**님! 로그인되었습니다.")
 
     if user.get("is_admin"):
-        st.info("관리자 계정입니다.")
-        st.page_link("pages/3_관리자패널.py", label="📊 관리자 패널로 이동", icon="📊")
+        st.info("관리자 계정입니다. 시험 응시 및 관리자 패널을 모두 사용할 수 있습니다.")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.page_link("pages/1_시험보기.py", label="✏️ 시험 응시하기", icon="✏️")
+        with col2:
+            st.page_link("pages/2_내결과.py", label="📋 내 결과 보기", icon="📋")
+        with col3:
+            st.page_link("pages/3_관리자패널.py", label="📊 관리자 패널", icon="📊")
     else:
         col1, col2 = st.columns(2)
         with col1:
