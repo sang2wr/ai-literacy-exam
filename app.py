@@ -74,60 +74,50 @@ st.markdown("""
     margin-top: 6px;
 }
 
-/* 네비게이션 버튼 카드 */
-.nav-grid {
-    display: grid;
-    gap: 14px;
-    margin-bottom: 20px;
-}
-.nav-grid-3 { grid-template-columns: repeat(3, 1fr); }
-.nav-grid-2 { grid-template-columns: repeat(2, 1fr); }
-
-.nav-btn {
-    display: block;
-    text-decoration: none !important;
-    background: rgba(255,255,255,0.06);
-    border: 1.5px solid rgba(255,255,255,0.14);
-    border-radius: 16px;
-    padding: 22px 16px 18px 16px;
-    text-align: center;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-.nav-btn:hover {
-    background: rgba(21,101,192,0.35);
-    border-color: #42a5f5;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(21,101,192,0.4);
-}
-.nav-btn-primary {
-    background: linear-gradient(135deg, #1565C0 0%, #1976D2 100%);
-    border-color: #42a5f5;
-    box-shadow: 0 4px 14px rgba(21,101,192,0.45);
-}
-.nav-btn-primary:hover {
-    background: linear-gradient(135deg, #1976D2 0%, #1e88e5 100%);
-    box-shadow: 0 6px 22px rgba(21,101,192,0.6);
-}
-.nav-icon { font-size: 2rem; margin-bottom: 8px; }
-.nav-label {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #ffffff;
-    display: block;
-    margin-bottom: 3px;
-}
-.nav-desc {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.6);
-    display: block;
-}
-
 /* 구분선 */
 .divider-line {
     border: none;
     border-top: 1px solid rgba(255,255,255,0.08);
     margin: 20px 0;
+}
+
+/* 네비게이션 카드 버튼 (컬럼 내부) */
+[data-testid="stColumn"] [data-testid="baseButton-secondary"] {
+    background: rgba(255,255,255,0.06) !important;
+    border: 1.5px solid rgba(255,255,255,0.14) !important;
+    border-radius: 16px !important;
+    padding: 24px 16px !important;
+    color: #ffffff !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    min-height: 100px !important;
+    white-space: pre-line !important;
+    line-height: 1.7 !important;
+    transition: all 0.2s !important;
+}
+[data-testid="stColumn"] [data-testid="baseButton-secondary"]:hover {
+    background: rgba(21,101,192,0.35) !important;
+    border-color: #42a5f5 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(21,101,192,0.4) !important;
+}
+[data-testid="stColumn"] [data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #1565C0 0%, #1976D2 100%) !important;
+    border: 1.5px solid #42a5f5 !important;
+    border-radius: 16px !important;
+    padding: 24px 16px !important;
+    color: #ffffff !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    min-height: 100px !important;
+    box-shadow: 0 4px 14px rgba(21,101,192,0.45) !important;
+    white-space: pre-line !important;
+    line-height: 1.7 !important;
+    transition: all 0.2s !important;
+}
+[data-testid="stColumn"] [data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(135deg, #1976D2 0%, #1e88e5 100%) !important;
+    box-shadow: 0 6px 22px rgba(21,101,192,0.6) !important;
 }
 
 /* 로그아웃 버튼 */
@@ -196,40 +186,24 @@ if st.session_state.logged_in and st.session_state.user:
 
     # 네비게이션 버튼
     if is_admin:
-        st.markdown("""
-        <div class="nav-grid nav-grid-3">
-            <a class="nav-btn nav-btn-primary" href="/1_exam" target="_self">
-                <div class="nav-icon">✏️</div>
-                <span class="nav-label">시험 응시하기</span>
-                <span class="nav-desc">자격시험 시작</span>
-            </a>
-            <a class="nav-btn" href="/2_results" target="_self">
-                <div class="nav-icon">📋</div>
-                <span class="nav-label">내 결과 보기</span>
-                <span class="nav-desc">점수 및 합격 확인</span>
-            </a>
-            <a class="nav-btn" href="/3_admin" target="_self">
-                <div class="nav-icon">📊</div>
-                <span class="nav-label">관리자 패널</span>
-                <span class="nav-desc">채점 및 결과 관리</span>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("✏️\n시험 응시하기\n자격시험 시작", key="nav_exam", use_container_width=True, type="primary"):
+                st.switch_page("pages/1_exam.py")
+        with c2:
+            if st.button("📋\n내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                st.switch_page("pages/2_results.py")
+        with c3:
+            if st.button("📊\n관리자 패널\n채점 및 결과 관리", key="nav_admin", use_container_width=True):
+                st.switch_page("pages/3_admin.py")
     else:
-        st.markdown("""
-        <div class="nav-grid nav-grid-2">
-            <a class="nav-btn nav-btn-primary" href="/1_exam" target="_self">
-                <div class="nav-icon">✏️</div>
-                <span class="nav-label">시험 응시하기</span>
-                <span class="nav-desc">자격시험 시작</span>
-            </a>
-            <a class="nav-btn" href="/2_results" target="_self">
-                <div class="nav-icon">📋</div>
-                <span class="nav-label">내 결과 보기</span>
-                <span class="nav-desc">점수 및 합격 확인</span>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("✏️\n시험 응시하기\n자격시험 시작", key="nav_exam", use_container_width=True, type="primary"):
+                st.switch_page("pages/1_exam.py")
+        with c2:
+            if st.button("📋\n내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                st.switch_page("pages/2_results.py")
 
     # 시험 안내 요약
     st.markdown("""
