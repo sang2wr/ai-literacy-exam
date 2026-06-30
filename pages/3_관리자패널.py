@@ -194,9 +194,15 @@ with tab3:
             st.dataframe(df, use_container_width=True, hide_index=True)
 
             # SA 문제
-            st.markdown("**주관식 문제** (수동 채점)")
+            st.markdown("**주관식 문제**")
             for q in sa_qs:
-                st.markdown(f"- **{q['id']}번:** {q['text']}")
+                with st.container(border=True):
+                    st.markdown(f"**{q['id']}번.** {q['text']}")
+                    answer = q.get("answer", "")
+                    if answer:
+                        st.success(f"✅ 정답/예시: {answer}")
+                    else:
+                        st.caption("수동 채점")
 
     # 전체 정답 CSV 다운로드
     st.divider()
@@ -220,7 +226,7 @@ with tab3:
                     "유형": "주관식",
                     "문제": q["text"],
                     "정답번호": "-",
-                    "정답내용": "수동 채점",
+                    "정답내용": q.get("answer", "수동 채점"),
                 })
     csv = pd.DataFrame(all_rows).to_csv(index=False, encoding="utf-8-sig")
     st.download_button(
