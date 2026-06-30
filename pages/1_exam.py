@@ -246,15 +246,29 @@ tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
 components.html("""
 <script>
 (function() {
+    function scrollToTop() {
+        var doc = window.parent.document;
+        var selectors = [
+            '[data-testid="stAppViewContainer"]',
+            '[data-testid="stMain"]',
+            '.main',
+            'section.main'
+        ];
+        selectors.forEach(function(sel) {
+            var el = doc.querySelector(sel);
+            if (el) el.scrollTop = 0;
+        });
+        doc.documentElement.scrollTop = 0;
+        doc.body.scrollTop = 0;
+    }
+
     function attach() {
         var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
         tabs.forEach(function(t) {
             if (!t._scrollTop) {
                 t._scrollTop = true;
                 t.addEventListener('click', function() {
-                    setTimeout(function() {
-                        window.parent.scrollTo({top: 0, behavior: 'smooth'});
-                    }, 150);
+                    setTimeout(scrollToTop, 150);
                 });
             }
         });
@@ -348,13 +362,20 @@ nav_html = f"""
     </div>
 </div>
 <script>
+function scrollToTop() {{
+    var doc = window.parent.document;
+    ['[data-testid="stAppViewContainer"]','[data-testid="stMain"]','.main','section.main'].forEach(function(sel) {{
+        var el = doc.querySelector(sel);
+        if (el) el.scrollTop = 0;
+    }});
+    doc.documentElement.scrollTop = 0;
+    doc.body.scrollTop = 0;
+}}
 function goToArea(idx) {{
     var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
     if (tabs && tabs[idx]) {{
         tabs[idx].click();
-        setTimeout(function() {{
-            window.parent.scrollTo({{top: 0, behavior: 'smooth'}});
-        }}, 100);
+        setTimeout(scrollToTop, 150);
     }}
 }}
 </script>
