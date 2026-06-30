@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 @st.cache_resource
 def get_client() -> Client:
     url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["anon_key"]
+    # service_role key bypasses RLS — falls back to anon_key if not set
+    key = st.secrets["supabase"].get("service_role_key") or st.secrets["supabase"]["anon_key"]
     return create_client(url, key)
 
 
