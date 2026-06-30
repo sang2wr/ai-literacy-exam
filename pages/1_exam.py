@@ -242,6 +242,29 @@ div[data-baseweb="tab-list"] {
 # ── Question tabs ─────────────────────────────────────────────────────────────
 tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
 
+# 탭 클릭 시 스크롤 최상단 이동
+components.html("""
+<script>
+(function() {
+    function attach() {
+        var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+        tabs.forEach(function(t) {
+            if (!t._scrollTop) {
+                t._scrollTop = true;
+                t.addEventListener('click', function() {
+                    setTimeout(function() {
+                        window.parent.scrollTo({top: 0, behavior: 'smooth'});
+                    }, 150);
+                });
+            }
+        });
+    }
+    attach();
+    setTimeout(attach, 500);
+})();
+</script>
+""", height=0)
+
 for tab, area in zip(tabs, areas):
     with tab:
         area_id = area["area_id"]
