@@ -151,7 +151,7 @@ with tab2:
         u = exam.get("users") or {}
 
         # ── 기존 주관식 점수 로드 (문항별) ───────────────────────────────────
-        existing_q_scores: Dict[int, int] = {}
+        existing_q_scores = {}
         try:
             raw = json.loads(exam.get("sa_scores") or "{}")
             for k, v in raw.items():
@@ -289,28 +289,33 @@ with tab2:
             )
 
         if save:
-            # 문항별 SA 점수 수집
-            sa_per_q: Dict[int, int] = {
-                q["id"]: int(st.session_state.get(f"sa_q_{exam_id}_{q['id']}", 0))
-                for q in sa_qs_all
-            }
-            # 분야별 SA 집계 (calculate_written_result용)
-            sa_per_area: Dict[int, int] = {}
-            for area in areas:
-                aid = area["area_id"]
-                sa_per_area[aid] = sum(
-                    sa_per_q.get(q["id"], 0)
-                    for q in area["questions"] if q["type"] == "sa"
-                )
+            try:
+                # 문항별 SA 점수 수집
+                sa_per_q = {
+                    q["id"]: int(st.session_state.get(f"sa_q_{exam_id}_{q['id']}", 0) or 0)
+                    for q in sa_qs_all
+                }
+                # 분야별 SA 집계
+                sa_per_area = {}
+                for _area in areas:
+                    _aid = _area["area_id"]
+                    sa_per_area[_aid] = sum(
+                        sa_per_q.get(q["id"], 0)
+                        for q in _area["questions"] if q["type"] == "sa"
+                    )
 
-            ok = update_practical_score(
-                exam_id,
-                int(practical_score),
-                practical_result,
-                practical_notes,
-                sa_per_area,
-                sa_per_q,
-            )
+                ok = update_practical_score(
+                    exam_id,
+                    int(practical_score or 0),
+                    practical_result,
+                    practical_notes,
+                    sa_per_area,
+                    sa_per_q,
+                )
+            except Exception as _save_err:
+                st.error(f"저장 오류 [{type(_save_err).__name__}]: {str(_save_err)[:300]}")
+                ok = False
+
             if ok:
                 _written, _area_totals = calculate_written_result(area_mc, sa_per_area)
                 st.success(f"저장 완료!  필기 판정: **{_written}**")
@@ -320,7 +325,7 @@ with tab2:
                     )
                 )
                 st.cache_data.clear()
-            else:
+            elif ok is False:
                 st.error("저장 중 오류가 발생했습니다.")
 
 # ── Tab 3: 정답표 ─────────────────────────────────────────────────────────────
