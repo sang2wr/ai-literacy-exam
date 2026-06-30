@@ -135,11 +135,9 @@ for exam in submitted:
                             user_text = q["options"][int(user_idx)] if user_idx is not None else "미응답"
                         except Exception:
                             user_text = "미응답"
-                        correct_text = q["options"][q["correct"]]
                         st.markdown(
                             f"{icon} **{qid}번** {q['text']}  \n"
-                            f"내 답: {user_text}  \n"
-                            f"{'정답: ' + correct_text if not is_correct else ''}"
+                            f"내 답: {user_text}"
                         )
                     else:
                         user_ans = ans_row["answer_text"] if ans_row else "미응답"
