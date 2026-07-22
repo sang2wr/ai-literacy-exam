@@ -3,6 +3,7 @@ import streamlit as st
 import json
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
+from utils.questions import ACTIVE_VERSION
 
 
 @st.cache_resource
@@ -61,6 +62,7 @@ def create_exam(user_id: str) -> Dict:
         "started_at": now,
         "status": "in_progress",
         "mc_score": 0,
+        "question_version": ACTIVE_VERSION,
     }).execute()
     return res.data[0]
 

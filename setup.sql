@@ -46,3 +46,8 @@ ALTER TABLE answers DISABLE ROW LEVEL SECURITY;
 -- 5. 초기 관리자 계정 생성 (비밀번호는 앱에서 직접 등록 후 is_admin=true 로 변경)
 -- 관리자로 지정하려면 앱에서 일반 회원가입 후 아래 SQL 실행:
 -- UPDATE users SET is_admin = TRUE WHERE email = 'admin@your-domain.com';
+
+-- 6. 문제 버전(차수) 컬럼 추가 — 2026-07-22
+-- 기존에 제출된 시험은 모두 questions_v1.json 기준으로 응시한 것이므로 기본값 'v1'.
+-- 신규 시험은 utils/questions.py의 ACTIVE_VERSION(현재 'v2')이 자동으로 저장됨.
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS question_version VARCHAR(10) DEFAULT 'v1';

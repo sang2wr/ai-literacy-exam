@@ -51,8 +51,14 @@ anon_key = "eyJhbGciOi..."
 - 제한 시간: **80분** (초과 시 자동 제출)
 - 채점: 객관식 자동 / 주관식·실기는 관리자 수동 채점
 
-## 문제 교체 방법
+## 문제 교체 방법 (차수별 버전 관리)
 
-`data/questions.json` 파일에서 문제를 직접 수정합니다.
-- `"type": "mc"` — 객관식 (options 4개, correct는 0~3 인덱스)
-- `"type": "sa"` — 주관식 (text만 있음)
+부정행위 방지를 위해 차수(회차)마다 문제 세트를 통째로 교체합니다.
+
+- 문제 파일은 `data/questions_v1.json`, `data/questions_v2.json` ... 형태로 차수별로 보관합니다.
+  - `"type": "mc"` — 객관식 (options 4개, correct는 0~3 인덱스)
+  - `"type": "sa"` — 주관식 (answer만 있음)
+- 새 응시자가 어떤 버전을 보게 할지는 `utils/questions.py`의 `ACTIVE_VERSION` 값 하나로 제어합니다.
+  - 새 차수를 시작하려면: `data/questions_vN.json` 추가 후 `ACTIVE_VERSION = "vN"`으로 변경.
+- 각 응시자의 `exams.question_version`에 응시 당시 버전이 저장되므로, 지난 차수 응시자의 결과/답안 조회는 항상 그 사람이 실제로 본 문제 버전으로 표시됩니다(관리자 채점 화면, 내 결과 페이지, 텔레그램 봇 모두 자동 반영).
+- 과거 버전 파일은 삭제하지 말고 그대로 두면, 다음에 같은 문제 세트를 다시 활성화(`ACTIVE_VERSION`을 되돌리기)해서 재사용할 수 있습니다.

@@ -4,8 +4,8 @@ from utils.database import (
     get_all_exams_with_users, get_exam_answers, update_practical_score,
     delete_exam, get_area_mc_scores, calculate_written_result,
 )
+from utils.questions import load_questions, ACTIVE_VERSION
 import json
-from pathlib import Path
 from datetime import datetime
 
 st.set_page_config(
@@ -25,14 +25,6 @@ if not st.session_state.user.get("is_admin"):
     st.error("관리자만 접근할 수 있습니다.")
     st.stop()
 
-
-@st.cache_data
-def load_questions():
-    path = Path(__file__).parent.parent / "data" / "questions.json"
-    return json.loads(path.read_text(encoding="utf-8"))
-
-areas = load_questions()
-q_map = {q["id"]: q for area in areas for q in area["questions"]}
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 st.title("📊 관리자 패널")
@@ -149,6 +141,8 @@ with tab2:
         exam = options[selected_label]
         exam_id = exam["id"]
         u = exam.get("users") or {}
+        areas = load_questions(exam.get("question_version"))
+        st.caption(f"📄 문제 버전: {exam.get('question_version') or 'v1'}")
 
         # ── 기존 주관식 점수 로드 (문항별) ───────────────────────────────────
         existing_q_scores = {}
@@ -333,7 +327,15 @@ with tab3:
     st.markdown("### 📝 객관식 정답표")
     st.caption("객관식 72문제 정답 목록입니다. 주관식은 관리자가 직접 채점합니다.")
 
-    for area in areas:
+    tab3_version = st.selectbox(
+        "문제 버전", ["v1", "v2"],
+        index=["v1", "v2"].index(ACTIVE_VERSION),
+        key="tab3_version",
+        help="신규 응시자는 현재 활성 버전(v2) 문제를 봅니다.",
+    )
+    areas_tab3 = load_questions(tab3_version)
+
+    for area in areas_tab3:
         mc_qs = [q for q in area["questions"] if q["type"] == "mc"]
         sa_qs = [q for q in area["questions"] if q["type"] == "sa"]
 
@@ -366,7 +368,7 @@ with tab3:
     # 전체 정답 CSV 다운로드
     st.divider()
     all_rows = []
-    for area in areas:
+    for area in areas_tab3:
         for q in area["questions"]:
             if q["type"] == "mc":
                 correct_idx = q.get("correct", 0)

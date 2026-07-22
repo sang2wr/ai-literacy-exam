@@ -1,8 +1,8 @@
 import streamlit as st
 import json
-from pathlib import Path
 from datetime import datetime
 from utils.database import get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result
+from utils.questions import load_questions
 
 st.set_page_config(
     page_title="내 결과 | AI리터러시지도사",
@@ -19,14 +19,6 @@ if not st.session_state.get("logged_in") or not st.session_state.get("user"):
 user = st.session_state.user
 user_id = user["id"]
 
-
-@st.cache_data
-def load_questions():
-    path = Path(__file__).parent.parent / "data" / "questions.json"
-    return json.loads(path.read_text(encoding="utf-8"))
-
-areas = load_questions()
-q_map = {q["id"]: q for area in areas for q in area["questions"]}
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 st.title("📋 내 시험 결과")
@@ -49,6 +41,8 @@ for exam in submitted:
             submitted_at = dt.strftime("%Y-%m-%d %H:%M")
         except Exception:
             pass
+
+    areas = load_questions(exam.get("question_version"))
 
     with st.expander(f"📄 시험 결과 — {submitted_at}  |  상태: {status_label}", expanded=True):
         mc_correct_total = exam.get("mc_score", 0) or 0

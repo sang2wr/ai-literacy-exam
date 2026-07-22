@@ -1,9 +1,8 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import json
 import time
-from pathlib import Path
 from utils.database import get_active_exam, create_exam, submit_exam, get_exam_by_id
+from utils.questions import load_questions, ACTIVE_VERSION
 
 st.set_page_config(
     page_title="시험 응시 | AI리터러시지도사",
@@ -24,30 +23,26 @@ if not st.session_state.get("logged_in") or not st.session_state.get("user"):
 user = st.session_state.user
 user_id = user["id"]
 
-# ── Load questions ────────────────────────────────────────────────────────────
-@st.cache_data
-def load_questions():
-    path = Path(__file__).parent.parent / "data" / "questions.json"
-    return json.loads(path.read_text(encoding="utf-8"))
-
-areas = load_questions()
-
 # ── Check existing exam ───────────────────────────────────────────────────────
 if "exam_id" in st.session_state:
     # Validate the exam still exists in DB (could have been deleted by admin)
     if not get_exam_by_id(st.session_state.exam_id):
-        for k in ["exam_id", "exam_start_time", "answers", "exam_submitted", "mc_score"]:
+        for k in ["exam_id", "exam_version", "exam_start_time", "answers", "exam_submitted", "mc_score"]:
             st.session_state.pop(k, None)
 
 if "exam_id" not in st.session_state:
     existing = get_active_exam(user_id)
     if existing:
         st.session_state.exam_id = existing["id"]
+        st.session_state.exam_version = existing.get("question_version") or ACTIVE_VERSION
         st.session_state.exam_start_time = (
             existing["started_at"]
             if isinstance(existing["started_at"], float)
             else time.time()  # fallback; will recalculate from DB if needed
         )
+
+# ── Load questions (해당 응시자의 시험 버전 기준) ───────────────────────────────
+areas = load_questions(st.session_state.get("exam_version"))
 
 # ── Helper: compute remaining seconds ─────────────────────────────────────────
 def get_remaining():
@@ -88,6 +83,7 @@ def show_pre_exam():
         with st.spinner("시험을 준비하는 중..."):
             exam = create_exam(user_id)
         st.session_state.exam_id = exam["id"]
+        st.session_state.exam_version = exam.get("question_version") or ACTIVE_VERSION
         st.session_state.exam_start_time = time.time()
         st.session_state.answers = {}  # {question_id: answer}
         st.rerun()
@@ -155,7 +151,7 @@ def do_submit(auto: bool = False):
         if auto:
             st.session_state.auto_submitted = True
         # Clean up exam session
-        for k in ["exam_id", "exam_start_time", "answers"]:
+        for k in ["exam_id", "exam_version", "exam_start_time", "answers"]:
             st.session_state.pop(k, None)
         st.rerun()
 
