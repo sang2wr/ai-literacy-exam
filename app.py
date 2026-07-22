@@ -2,7 +2,7 @@ import streamlit as st
 from utils.auth import login_user, register_user
 
 st.set_page_config(
-    page_title="AI리터러시지도사 자격시험",
+    page_title="주식회사 상상우리 | AI리터러시지도사 민간 자격 시험",
     page_icon="🤖",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -27,22 +27,60 @@ st.markdown("""
     margin: 0 auto;
     max-width: 560px;
     backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+/* 폼/탭 영역을 감싸는 카드 */
+[data-testid="stForm"] {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 22px 20px 14px 20px;
+}
+
+/* 배지 */
+.hero-badge {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+    filter: drop-shadow(0 6px 18px rgba(21,101,192,0.55));
 }
 
 /* 타이틀 */
+.hero-company {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #7fa8d0;
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
 .hero-title {
-    font-size: 2.1rem;
+    font-size: 1.9rem;
     font-weight: 800;
     color: #ffffff;
     text-align: center;
     margin-bottom: 4px;
     letter-spacing: -0.5px;
+    line-height: 1.3;
 }
 .hero-sub {
     font-size: 0.95rem;
     color: #7fa8d0;
     text-align: center;
     margin-bottom: 28px;
+}
+
+/* 로그인 필드 라벨 */
+.field-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #90caf9;
+    margin: 16px 0 6px 4px;
+}
+.field-label:first-of-type {
+    margin-top: 4px;
 }
 
 /* 환영 배너 */
@@ -142,6 +180,11 @@ button[aria-selected="true"][data-baseweb="tab"] {
 input[type="text"], input[type="password"] {
     border-radius: 10px !important;
     border-color: rgba(255,255,255,0.15) !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #42a5f5 !important;
+    box-shadow: 0 0 0 3px rgba(66,165,245,0.25) !important;
 }
 
 /* 로그인 버튼 */
@@ -179,7 +222,7 @@ if st.session_state.logged_in and st.session_state.user:
     st.markdown(f"""
     <div class="welcome-box">
         <div class="welcome-name">👋 {user['name']}님, 환영합니다!</div>
-        <div class="welcome-sub">AI리터러시지도사 자격시험 플랫폼</div>
+        <div class="welcome-sub">주식회사 상상우리 · AI리터러시지도사 민간 자격 시험</div>
         {admin_badge}
     </div>
     """, unsafe_allow_html=True)
@@ -224,9 +267,23 @@ if st.session_state.logged_in and st.session_state.user:
 
 # ── Login / Register ──────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center; padding: 32px 0 8px 0;">
-    <div style="font-size:3rem; margin-bottom:8px;">🤖</div>
-    <div class="hero-title">AI리터러시지도사</div>
+<div style="text-align:center; padding: 28px 0 8px 0;">
+    <div class="hero-badge">
+        <svg width="88" height="88" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#42a5f5"/>
+                    <stop offset="100%" stop-color="#1565C0"/>
+                </linearGradient>
+            </defs>
+            <circle cx="48" cy="44" r="40" fill="url(#badgeGrad)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+            <text x="48" y="52" font-family="'Segoe UI', Arial, sans-serif" font-size="26" font-weight="800" fill="#ffffff" text-anchor="middle">AI</text>
+            <path d="M22 76 L48 64 L74 76 L64 92 L48 84 L32 92 Z" fill="#ffd54f"/>
+            <circle cx="48" cy="44" r="40" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+        </svg>
+    </div>
+    <div class="hero-company">주식회사 상상우리</div>
+    <div class="hero-title">AI리터러시지도사<br>민간 자격 시험</div>
     <div class="hero-sub">자격시험 응시 플랫폼</div>
 </div>
 """, unsafe_allow_html=True)
@@ -236,10 +293,10 @@ tab_login, tab_register = st.tabs(["🔑  로그인", "📝  회원가입"])
 with tab_login:
     st.markdown("<br>", unsafe_allow_html=True)
     with st.form("login_form"):
+        st.markdown('<div class="field-label">이메일</div>', unsafe_allow_html=True)
         email = st.text_input("이메일", placeholder="example@email.com", label_visibility="collapsed")
-        st.caption("이메일")
-        password = st.text_input("비밀번호", type="password", placeholder="비밀번호 입력", label_visibility="collapsed")
-        st.caption("비밀번호")
+        st.markdown('<div class="field-label">패스워드</div>', unsafe_allow_html=True)
+        password = st.text_input("패스워드", type="password", placeholder="비밀번호 입력", label_visibility="collapsed")
         submitted = st.form_submit_button("로그인", use_container_width=True, type="primary")
 
     if submitted:
@@ -283,6 +340,6 @@ with tab_register:
 # 하단 안내
 st.markdown("""
 <div style="text-align:center; margin-top:32px; color:rgba(255,255,255,0.3); font-size:0.78rem;">
-    AI리터러시지도사 자격시험 공식 응시 플랫폼
+    © 주식회사 상상우리 · AI리터러시지도사 민간 자격 시험 공식 응시 플랫폼
 </div>
 """, unsafe_allow_html=True)
