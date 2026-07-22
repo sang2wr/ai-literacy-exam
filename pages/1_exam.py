@@ -205,7 +205,7 @@ st.markdown("""
 <style>
 /* 탭 버튼 기본 */
 button[data-baseweb="tab"] {
-    font-size: 1.05rem !important;
+    font-size: 1.15rem !important;
     font-weight: 700 !important;
     padding: 12px 20px !important;
     border-radius: 10px 10px 0 0 !important;
@@ -232,6 +232,26 @@ div[data-baseweb="tab-list"] {
     border-bottom: 2px solid #1565C0 !important;
     padding-bottom: 0 !important;
 }
+
+/* 고령 응시자를 위한 글자 크기 확대 */
+[data-testid="stMarkdownContainer"] p {
+    font-size: 1.18rem !important;
+    line-height: 1.7 !important;
+}
+.stRadio p, .stRadio label {
+    font-size: 1.12rem !important;
+    line-height: 1.6 !important;
+}
+[data-testid="stCaptionContainer"] p, .stCaptionContainer p {
+    font-size: 1.02rem !important;
+}
+.stButton > button {
+    font-size: 1.12rem !important;
+    padding: 0.7rem 1rem !important;
+}
+textarea {
+    font-size: 1.1rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -242,8 +262,12 @@ tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
 components.html("""
 <script>
 (function() {
+    function getTopDoc() {
+        try { return window.top.document; } catch (e) { return window.parent.document; }
+    }
+
     function scrollToTop() {
-        var doc = window.parent.document;
+        var doc = getTopDoc();
         var selectors = [
             '[data-testid="stAppViewContainer"]',
             '[data-testid="stMain"]',
@@ -259,7 +283,7 @@ components.html("""
     }
 
     function attach() {
-        var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+        var tabs = getTopDoc().querySelectorAll('button[data-baseweb="tab"]');
         tabs.forEach(function(t) {
             if (!t._scrollTop) {
                 t._scrollTop = true;
@@ -271,6 +295,7 @@ components.html("""
     }
     attach();
     setTimeout(attach, 500);
+    setTimeout(attach, 1200);
 })();
 </script>
 """, height=0)
@@ -333,14 +358,14 @@ for i, area in enumerate(areas):
     area_btns_html += f"""
     <button onclick="goToArea({i})" style="
         background:{bg}; color:#fff; border:2px solid {border};
-        padding:14px 10px; border-radius:12px; cursor:pointer;
-        font-size:0.9rem; font-weight:700; width:100%;
+        padding:16px 10px; border-radius:12px; cursor:pointer;
+        font-size:1.05rem; font-weight:700; width:100%;
         box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:all 0.2s;
-        line-height:1.5;
+        line-height:1.6;
     " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
         {status_icon} 분야 {i+1}<br>
-        <span style="font-size:0.78rem;font-weight:500">{area['area_name']}</span><br>
-        <span style="font-size:0.75rem;opacity:0.85">{answered}/{total_q} 응답</span>
+        <span style="font-size:0.92rem;font-weight:500">{area['area_name']}</span><br>
+        <span style="font-size:0.88rem;opacity:0.85">{answered}/{total_q} 응답</span>
     </button>"""
 
 nav_html = f"""
@@ -358,8 +383,11 @@ nav_html = f"""
     </div>
 </div>
 <script>
+function getTopDoc() {{
+    try {{ return window.top.document; }} catch (e) {{ return window.parent.document; }}
+}}
 function scrollToTop() {{
-    var doc = window.parent.document;
+    var doc = getTopDoc();
     ['[data-testid="stAppViewContainer"]','[data-testid="stMain"]','.main','section.main'].forEach(function(sel) {{
         var el = doc.querySelector(sel);
         if (el) el.scrollTop = 0;
@@ -368,7 +396,7 @@ function scrollToTop() {{
     doc.body.scrollTop = 0;
 }}
 function goToArea(idx) {{
-    var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+    var tabs = getTopDoc().querySelectorAll('button[data-baseweb="tab"]');
     if (tabs && tabs[idx]) {{
         tabs[idx].click();
         setTimeout(scrollToTop, 150);
@@ -376,7 +404,7 @@ function goToArea(idx) {{
 }}
 </script>
 """
-components.html(nav_html, height=165)
+components.html(nav_html, height=195)
 
 # ── Submit button ─────────────────────────────────────────────────────────────
 st.markdown("### 최종 제출")
