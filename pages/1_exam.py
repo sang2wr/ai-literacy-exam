@@ -204,7 +204,7 @@ st.divider()
 st.markdown("""
 <style>
 /* 탭 버튼 기본 */
-button[data-baseweb="tab"] {
+[data-testid="stTab"] {
     font-size: 1.15rem !important;
     font-weight: 700 !important;
     padding: 12px 20px !important;
@@ -216,17 +216,17 @@ button[data-baseweb="tab"] {
     margin-right: 6px !important;
     transition: all 0.2s !important;
 }
-button[data-baseweb="tab"]:hover {
+[data-testid="stTab"]:hover {
     background: #2a3f5f !important;
     color: #ffffff !important;
 }
-button[aria-selected="true"][data-baseweb="tab"] {
+[data-testid="stTab"][aria-selected="true"] {
     background: #1565C0 !important;
     color: #ffffff !important;
     border-color: #1565C0 !important;
     box-shadow: 0 -3px 10px rgba(21,101,192,0.4) !important;
 }
-div[data-baseweb="tab-list"] {
+[role="tablist"] {
     background: transparent !important;
     gap: 4px !important;
     border-bottom: 2px solid #1565C0 !important;
@@ -263,7 +263,13 @@ components.html("""
 <script>
 (function() {
     function getTopDoc() {
-        try { return window.top.document; } catch (e) { return window.parent.document; }
+        var candidates = [];
+        try { candidates.push(window.parent.document); } catch (e) {}
+        try { candidates.push(window.top.document); } catch (e) {}
+        for (var i = 0; i < candidates.length; i++) {
+            if (candidates[i] && candidates[i].querySelector('[data-testid="stTab"]')) return candidates[i];
+        }
+        return candidates[0] || document;
     }
 
     function scrollToTop() {
@@ -283,7 +289,7 @@ components.html("""
     }
 
     function attach() {
-        var tabs = getTopDoc().querySelectorAll('button[data-baseweb="tab"]');
+        var tabs = getTopDoc().querySelectorAll('[data-testid="stTab"]');
         tabs.forEach(function(t) {
             if (!t._scrollTop) {
                 t._scrollTop = true;
@@ -384,7 +390,13 @@ nav_html = f"""
 </div>
 <script>
 function getTopDoc() {{
-    try {{ return window.top.document; }} catch (e) {{ return window.parent.document; }}
+    var candidates = [];
+    try {{ candidates.push(window.parent.document); }} catch (e) {{}}
+    try {{ candidates.push(window.top.document); }} catch (e) {{}}
+    for (var i = 0; i < candidates.length; i++) {{
+        if (candidates[i] && candidates[i].querySelector('[data-testid="stTab"]')) return candidates[i];
+    }}
+    return candidates[0] || document;
 }}
 function scrollToTop() {{
     var doc = getTopDoc();
@@ -396,7 +408,7 @@ function scrollToTop() {{
     doc.body.scrollTop = 0;
 }}
 function goToArea(idx) {{
-    var tabs = getTopDoc().querySelectorAll('button[data-baseweb="tab"]');
+    var tabs = getTopDoc().querySelectorAll('[data-testid="stTab"]');
     if (tabs && tabs[idx]) {{
         tabs[idx].click();
         setTimeout(scrollToTop, 150);
