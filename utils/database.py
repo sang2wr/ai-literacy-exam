@@ -118,6 +118,22 @@ def get_all_exams_with_users() -> List[Dict]:
         return []
 
 
+def get_in_progress_exams_with_users() -> List[Dict]:
+    """응시 중(미제출) 시험 목록. 오래 방치되면 이전 문제 버전에 고정되는 원인이 됨."""
+    try:
+        res = (
+            get_client()
+            .table("exams")
+            .select("*, users(name, email, phone)")
+            .eq("status", "in_progress")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return res.data or []
+    except Exception:
+        return []
+
+
 def get_exam_answers(exam_id: str) -> List[Dict]:
     try:
         res = (

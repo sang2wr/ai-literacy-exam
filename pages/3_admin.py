@@ -3,6 +3,7 @@ import pandas as pd
 from utils.database import (
     get_all_exams_with_users, get_exam_answers, update_practical_score,
     delete_exam, get_area_mc_scores, calculate_written_result,
+    get_in_progress_exams_with_users,
 )
 from utils.questions import load_questions, ACTIVE_VERSION
 import json
@@ -122,6 +123,53 @@ with tab1:
                 with c2:
                     if st.button("❌ 취소", key=f"confirm_no_{exam_id}"):
                         st.session_state.pop(f"confirm_del_{exam_id}", None)
+                        st.rerun()
+
+    # ── 응시 중(미제출) 기록 ──────────────────────────────────────────────
+    st.divider()
+    st.markdown("### ⏳ 응시 중(미제출) 시험")
+    st.caption(
+        "시험을 시작한 뒤 제출하지 않고 오래 방치된 기록입니다. "
+        "이어서 응시하는 동안에는 시작 당시의 문제 버전이 계속 사용되므로, "
+        "새 문제 버전으로 다시 시작하게 하려면 여기서 삭제하세요."
+    )
+    in_progress = get_in_progress_exams_with_users()
+    if not in_progress:
+        st.info("응시 중인 기록이 없습니다.")
+    else:
+        for e in in_progress:
+            u = e.get("users") or {}
+            name = u.get("name", "-")
+            email = u.get("email", "-")
+            created_at = (e.get("created_at") or "")[:16]
+            version = e.get("question_version") or "v1"
+            exam_id = e["id"]
+
+            col_info, col_btn = st.columns([5, 1])
+            with col_info:
+                st.markdown(
+                    f"**{name}** ({email}) | 시작: {created_at} | 문제 버전: `{version}`"
+                )
+            with col_btn:
+                if st.button("🗑 삭제", key=f"del_ip_{exam_id}"):
+                    st.session_state[f"confirm_del_ip_{exam_id}"] = True
+
+            if st.session_state.get(f"confirm_del_ip_{exam_id}"):
+                st.warning(
+                    f"⚠️ **{name}**님의 응시 중 기록을 삭제하시겠습니까? "
+                    "다음 로그인 시 현재 활성 버전으로 새로 시작합니다."
+                )
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("✅ 삭제 확인", key=f"confirm_ip_yes_{exam_id}", type="primary"):
+                        if delete_exam(exam_id):
+                            st.success("삭제되었습니다.")
+                            st.session_state.pop(f"confirm_del_ip_{exam_id}", None)
+                            st.cache_data.clear()
+                            st.rerun()
+                with c2:
+                    if st.button("❌ 취소", key=f"confirm_ip_no_{exam_id}"):
+                        st.session_state.pop(f"confirm_del_ip_{exam_id}", None)
                         st.rerun()
 
 # ── Tab 2: Grade individual exam ──────────────────────────────────────────────
