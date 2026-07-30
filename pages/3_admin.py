@@ -8,13 +8,16 @@ from utils.database import (
 from utils.questions import load_questions, ACTIVE_VERSION
 import json
 from datetime import datetime
+from utils.theme import inject_base_css, navbar, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
 
 st.set_page_config(
     page_title="관리자 패널 | AI리터러시지도사",
-    page_icon="📊",
+    page_icon=logo_path("icon"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+inject_base_css()
 
 # ── Auth guard ────────────────────────────────────────────────────────────────
 if not st.session_state.get("logged_in") or not st.session_state.get("user"):
@@ -26,10 +29,23 @@ if not st.session_state.user.get("is_admin"):
     st.error("관리자만 접근할 수 있습니다.")
     st.stop()
 
+navbar(st.session_state.user)
 
 # ── Page ──────────────────────────────────────────────────────────────────────
-st.title("📊 관리자 패널")
-st.caption("시험 결과 관리 및 점수 입력")
+page_header("관리자 패널", "시험 결과 관리 및 채점", "shield")
+
+_all_exams_for_stats = get_all_exams_with_users()
+_in_progress_for_stats = get_in_progress_exams_with_users()
+_graded = sum(1 for e in _all_exams_for_stats if e["status"] == "graded")
+_pending = sum(1 for e in _all_exams_for_stats if e["status"] == "submitted")
+render_html(f"""
+<div class="sw-info-strip">
+    {info_pill("bar-chart", "전체 응시", f"{len(_all_exams_for_stats)}건")}
+    {info_pill("clock", "채점 대기", f"{_pending}건")}
+    {info_pill("check-circle", "채점 완료", f"{_graded}건")}
+    {info_pill("alert-triangle", "응시 중(미제출)", f"{len(_in_progress_for_stats)}건")}
+</div>
+""")
 
 tab1, tab2, tab3 = st.tabs(["📋 전체 결과 목록", "✏️ 점수 입력 / 채점", "📝 정답표"])
 
@@ -41,7 +57,7 @@ with tab1:
             st.cache_data.clear()
             st.rerun()
 
-    exams = get_all_exams_with_users()
+    exams = _all_exams_for_stats
     if not exams:
         st.info("제출된 시험이 없습니다.")
     else:
@@ -92,7 +108,7 @@ with tab1:
 
         # ── 기록 삭제 ──────────────────────────────────────────────────────
         st.divider()
-        st.markdown("### 🗑 기록 삭제 (재시험 허용)")
+        st.markdown(f"### {icon('trash', 20, BRAND['coral'])} 기록 삭제 (재시험 허용)", unsafe_allow_html=True)
         st.caption("삭제 후에는 응시자가 다시 시험을 볼 수 있습니다. 삭제된 기록은 복구할 수 없습니다.")
 
         for e in exams:
@@ -127,13 +143,13 @@ with tab1:
 
     # ── 응시 중(미제출) 기록 ──────────────────────────────────────────────
     st.divider()
-    st.markdown("### ⏳ 응시 중(미제출) 시험")
+    st.markdown(f"### {icon('alert-triangle', 20, BRAND['orange'])} 응시 중(미제출) 시험", unsafe_allow_html=True)
     st.caption(
         "시험을 시작한 뒤 제출하지 않고 오래 방치된 기록입니다. "
         "이어서 응시하는 동안에는 시작 당시의 문제 버전이 계속 사용되므로, "
         "새 문제 버전으로 다시 시작하게 하려면 여기서 삭제하세요."
     )
-    in_progress = get_in_progress_exams_with_users()
+    in_progress = _in_progress_for_stats
     if not in_progress:
         st.info("응시 중인 기록이 없습니다.")
     else:
@@ -174,7 +190,7 @@ with tab1:
 
 # ── Tab 2: Grade individual exam ──────────────────────────────────────────────
 with tab2:
-    exams_all = get_all_exams_with_users()
+    exams_all = _all_exams_for_stats
     if not exams_all:
         st.info("채점할 시험이 없습니다.")
     else:
@@ -248,7 +264,7 @@ with tab2:
         st.divider()
 
         # ── 주관식 채점 (답안 + 점수 입력 인라인) ────────────────────────────
-        st.markdown("### 📝 주관식 채점")
+        st.markdown(f"### {icon('file-text', 20, BRAND['coral'])} 주관식 채점", unsafe_allow_html=True)
         answers = get_exam_answers(exam_id)
         ans_map = {a["question_id"]: a for a in answers}
 
@@ -301,7 +317,7 @@ with tab2:
 
         # ── 저장 폼 (실기 점수 + 최종 제출) ──────────────────────────────────
         st.divider()
-        st.markdown("### 💾 저장 및 실기 점수 입력")
+        st.markdown(f"### {icon('award', 20, BRAND['teal'])} 저장 및 실기 점수 입력", unsafe_allow_html=True)
 
         with st.form(f"save_form_{exam_id}"):
             st.markdown("**실기시험 (필기 합격자만)**")
@@ -372,7 +388,7 @@ with tab2:
 
 # ── Tab 3: 정답표 ─────────────────────────────────────────────────────────────
 with tab3:
-    st.markdown("### 📝 객관식 정답표")
+    st.markdown(f"### {icon('list-checks', 20, BRAND['coral'])} 객관식 정답표", unsafe_allow_html=True)
     st.caption("객관식 72문제 정답 목록입니다. 주관식은 관리자가 직접 채점합니다.")
 
     tab3_version = st.selectbox(
@@ -444,3 +460,5 @@ with tab3:
         file_name="정답표.csv",
         mime="text/csv",
     )
+
+footer()

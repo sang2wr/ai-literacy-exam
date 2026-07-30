@@ -1,210 +1,52 @@
 import streamlit as st
 from utils.auth import login_user, register_user
+from utils.theme import inject_base_css, navbar, icon, info_pill, footer, logo_data_uri, logo_path, BRAND, render_html
 
 st.set_page_config(
     page_title="주식회사 상상우리 | AI리터러시지도사 민간 자격 시험",
-    page_icon="🤖",
+    page_icon=logo_path("icon"),
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-# ── Global CSS ────────────────────────────────────────────────────────────────
-st.markdown("""
+inject_base_css()
+
+render_html(f"""
 <style>
-/* 배경 */
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0d1b2a 0%, #1b2d45 60%, #0d1b2a 100%);
-    min-height: 100vh;
-}
-[data-testid="stHeader"] { background: transparent; }
-
-/* 메인 카드 컨테이너 */
-.main-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 20px;
-    padding: 40px 36px 32px 36px;
-    margin: 0 auto;
-    max-width: 560px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
-}
-
-/* 폼/탭 영역을 감싸는 카드 */
-[data-testid="stForm"] {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 22px 20px 14px 20px;
-}
-
-/* 배지 */
-.hero-badge {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 14px;
-    filter: drop-shadow(0 6px 18px rgba(21,101,192,0.55));
-}
-
-/* 타이틀 */
-.hero-company {
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #7fa8d0;
+.sw-hero {{
+    background: radial-gradient(circle at 15% 20%, rgba(241,88,53,0.35), transparent 45%),
+                radial-gradient(circle at 85% 15%, rgba(57,188,165,0.30), transparent 45%),
+                linear-gradient(160deg, {BRAND['ink']} 0%, #322C2D 100%);
+    border-radius: 24px;
+    padding: 44px 32px 34px 32px;
     text-align: center;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-.hero-title {
-    font-size: 1.9rem;
-    font-weight: 800;
-    color: #ffffff;
-    text-align: center;
-    margin-bottom: 4px;
-    letter-spacing: -0.5px;
-    line-height: 1.3;
-}
-.hero-sub {
-    font-size: 0.95rem;
-    color: #7fa8d0;
-    text-align: center;
-    margin-bottom: 28px;
-}
+    box-shadow: 0 20px 50px rgba(34,30,31,0.22);
+    margin-bottom: 18px;
+}}
+.sw-hero img.sw-hero-logo {{ height: 46px; margin-bottom: 18px; }}
+.sw-hero-eyebrow {{
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(255,255,255,0.55); margin-bottom: 10px;
+}}
+.sw-hero-title {{ font-size: 1.85rem; font-weight: 800; color: #fff; line-height: 1.35; margin-bottom: 8px; letter-spacing: -0.5px; }}
+.sw-hero-sub {{ font-size: 0.95rem; color: rgba(255,255,255,0.68); }}
 
-/* 로그인 필드 라벨 */
-.field-label {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #90caf9;
-    margin: 16px 0 6px 4px;
-}
-.field-label:first-of-type {
-    margin-top: 4px;
-}
+.field-label {{ font-size: 0.82rem; font-weight: 700; color: {BRAND['ink_soft']}; margin: 14px 0 6px 4px; }}
+.field-label:first-of-type {{ margin-top: 2px; }}
 
-/* 환영 배너 */
-.welcome-box {
-    background: linear-gradient(90deg, #1565C0 0%, #1976D2 100%);
-    border-radius: 14px;
-    padding: 18px 24px;
-    margin-bottom: 24px;
-    text-align: center;
-}
-.welcome-name {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #ffffff;
-}
-.welcome-sub {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.75);
-    margin-top: 2px;
-}
-.admin-badge {
-    display: inline-block;
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 20px;
-    padding: 2px 12px;
-    font-size: 0.78rem;
-    color: #fff;
-    margin-top: 6px;
-}
-
-/* 구분선 */
-.divider-line {
-    border: none;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    margin: 20px 0;
-}
-
-/* 네비게이션 카드 버튼 (컬럼 내부) */
-[data-testid="stColumn"] [data-testid="baseButton-secondary"] {
-    background: rgba(255,255,255,0.06) !important;
-    border: 1.5px solid rgba(255,255,255,0.14) !important;
-    border-radius: 16px !important;
-    padding: 24px 16px !important;
-    color: #ffffff !important;
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    min-height: 100px !important;
-    white-space: pre-line !important;
-    line-height: 1.7 !important;
-    transition: all 0.2s !important;
-}
-[data-testid="stColumn"] [data-testid="baseButton-secondary"]:hover {
-    background: rgba(21,101,192,0.35) !important;
-    border-color: #42a5f5 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(21,101,192,0.4) !important;
-}
-[data-testid="stColumn"] [data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #1565C0 0%, #1976D2 100%) !important;
-    border: 1.5px solid #42a5f5 !important;
-    border-radius: 16px !important;
-    padding: 24px 16px !important;
-    color: #ffffff !important;
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    min-height: 100px !important;
-    box-shadow: 0 4px 14px rgba(21,101,192,0.45) !important;
-    white-space: pre-line !important;
-    line-height: 1.7 !important;
-    transition: all 0.2s !important;
-}
-[data-testid="stColumn"] [data-testid="baseButton-primary"]:hover {
-    background: linear-gradient(135deg, #1976D2 0%, #1e88e5 100%) !important;
-    box-shadow: 0 6px 22px rgba(21,101,192,0.6) !important;
-}
-
-/* 로그아웃 버튼 */
-.stButton > button {
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    transition: all 0.2s !important;
-}
-
-/* 탭 스타일 */
-button[data-baseweb="tab"] {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #90caf9 !important;
-}
-button[aria-selected="true"][data-baseweb="tab"] {
-    color: #ffffff !important;
-    border-bottom-color: #1565C0 !important;
-}
-
-/* 입력 필드 */
-input[type="text"], input[type="password"] {
-    border-radius: 10px !important;
-    border-color: rgba(255,255,255,0.15) !important;
-    transition: border-color 0.2s, box-shadow 0.2s !important;
-}
-input[type="text"]:focus, input[type="password"]:focus {
-    border-color: #42a5f5 !important;
-    box-shadow: 0 0 0 3px rgba(66,165,245,0.25) !important;
-}
-
-/* 로그인 버튼 */
-[data-testid="stFormSubmitButton"] > button {
-    background: linear-gradient(90deg, #1565C0, #1976D2) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    padding: 12px !important;
-    width: 100% !important;
-    transition: all 0.2s !important;
-}
-[data-testid="stFormSubmitButton"] > button:hover {
-    background: linear-gradient(90deg, #1976D2, #1e88e5) !important;
-    box-shadow: 0 4px 14px rgba(21,101,192,0.5) !important;
-}
+.welcome-box {{
+    background: linear-gradient(120deg, {BRAND['coral']} 0%, {BRAND['orange']} 100%);
+    border-radius: 20px; padding: 26px 28px; margin-bottom: 6px; color: #fff;
+    display:flex; align-items:center; gap:18px; box-shadow: 0 14px 30px rgba(241,88,53,0.28);
+}}
+.welcome-avatar {{
+    width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,0.22);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}}
+.welcome-name {{ font-size: 1.3rem; font-weight: 800; }}
+.welcome-sub {{ font-size: 0.85rem; opacity: 0.9; margin-top: 2px; }}
 </style>
-""", unsafe_allow_html=True)
+""")
 
 # ── Session init ──────────────────────────────────────────────────────────────
 if "logged_in" not in st.session_state:
@@ -217,77 +59,81 @@ if st.session_state.logged_in and st.session_state.user:
     user = st.session_state.user
     is_admin = user.get("is_admin", False)
 
-    # 환영 배너
-    admin_badge = '<span class="admin-badge">⚙️ 관리자</span>' if is_admin else ""
-    st.markdown(f"""
+    navbar(user)
+
+    role_txt = "관리자 계정으로 로그인되었습니다" if is_admin else "AI리터러시지도사 자격시험 응시자"
+    render_html(f"""
     <div class="welcome-box">
-        <div class="welcome-name">👋 {user['name']}님, 환영합니다!</div>
-        <div class="welcome-sub">주식회사 상상우리 · AI리터러시지도사 민간 자격 시험</div>
-        {admin_badge}
+        <div class="welcome-avatar">{icon("user", 28, "#fff")}</div>
+        <div>
+            <div class="welcome-name">{user['name']}님, 환영합니다</div>
+            <div class="welcome-sub">{role_txt}</div>
+        </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
+
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
     # 네비게이션 버튼
-    if is_admin:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("✏️\n시험 응시하기\n자격시험 시작", key="nav_exam", use_container_width=True, type="primary"):
-                st.switch_page("pages/1_exam.py")
-        with c2:
-            if st.button("📋\n내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
-                st.switch_page("pages/2_results.py")
-        with c3:
-            if st.button("📊\n관리자 패널\n채점 및 결과 관리", key="nav_admin", use_container_width=True):
-                st.switch_page("pages/3_admin.py")
-    else:
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("✏️\n시험 응시하기\n자격시험 시작", key="nav_exam", use_container_width=True, type="primary"):
-                st.switch_page("pages/1_exam.py")
-        with c2:
-            if st.button("📋\n내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
-                st.switch_page("pages/2_results.py")
+    with st.container(key="home_nav_row"):
+        if is_admin:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                if st.button("✏️  시험 응시하기\n자격시험 시작하기", key="nav_exam", use_container_width=True, type="primary"):
+                    st.switch_page("pages/1_exam.py")
+            with c2:
+                if st.button("📋  내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                    st.switch_page("pages/2_results.py")
+            with c3:
+                if st.button("📊  관리자 패널\n채점 및 결과 관리", key="nav_admin", use_container_width=True):
+                    st.switch_page("pages/3_admin.py")
+        else:
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("✏️  시험 응시하기\n자격시험 시작하기", key="nav_exam", use_container_width=True, type="primary"):
+                    st.switch_page("pages/1_exam.py")
+            with c2:
+                if st.button("📋  내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                    st.switch_page("pages/2_results.py")
 
     # 시험 안내 요약
-    st.markdown("""
-    <hr class="divider-line">
-    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:16px;">
-        <span style="color:#90caf9; font-size:0.85rem;">🕐 제한시간 90분</span>
-        <span style="color:#90caf9; font-size:0.85rem;">📝 총 80문제</span>
-        <span style="color:#90caf9; font-size:0.85rem;">🎯 평균 60점 이상 합격</span>
-        <span style="color:#90caf9; font-size:0.85rem;">📚 4개 분야</span>
+    render_html(f"""
+    <div class="sw-info-strip">
+        {info_pill("clock", "제한시간", "90분")}
+        {info_pill("book-open", "총 문항", "80문제")}
+        {info_pill("target", "합격 기준", "평균 60점↑")}
+        {info_pill("grid", "시험 구성", "4개 분야")}
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
     if st.button("🚪 로그아웃", use_container_width=True):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+    footer()
     st.stop()
 
 # ── Login / Register ──────────────────────────────────────────────────────────
-st.markdown("""
-<div style="text-align:center; padding: 28px 0 8px 0;">
-    <div class="hero-badge">
-        <svg width="88" height="88" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#42a5f5"/>
-                    <stop offset="100%" stop-color="#1565C0"/>
-                </linearGradient>
-            </defs>
-            <circle cx="48" cy="44" r="40" fill="url(#badgeGrad)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
-            <text x="48" y="52" font-family="'Segoe UI', Arial, sans-serif" font-size="26" font-weight="800" fill="#ffffff" text-anchor="middle">AI</text>
-            <path d="M22 76 L48 64 L74 76 L64 92 L48 84 L32 92 Z" fill="#ffd54f"/>
-            <circle cx="48" cy="44" r="40" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-        </svg>
-    </div>
-    <div class="hero-company">주식회사 상상우리</div>
-    <div class="hero-title">AI리터러시지도사<br>민간 자격 시험</div>
-    <div class="hero-sub">자격시험 응시 플랫폼</div>
+render_html(f"""
+<div class="sw-hero">
+    <img class="sw-hero-logo" src="{logo_data_uri('white')}" alt="상상우리" />
+    <div class="sw-hero-eyebrow">주식회사 상상우리</div>
+    <div class="sw-hero-title">AI리터러시지도사<br>민간 자격 시험</div>
+    <div class="sw-hero-sub">자격시험 응시 플랫폼에 오신 것을 환영합니다</div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
+render_html(f"""
+<div class="sw-info-strip">
+    {info_pill("clock", "제한시간", "90분")}
+    {info_pill("book-open", "총 문항", "80문제")}
+    {info_pill("target", "합격 기준", "평균 60점↑")}
+    {info_pill("grid", "시험 구성", "4개 분야")}
+</div>
+""")
+
+st.markdown('<div class="sw-card">', unsafe_allow_html=True)
 tab_login, tab_register = st.tabs(["🔑  로그인", "📝  회원가입"])
 
 with tab_login:
@@ -336,10 +182,6 @@ with tab_register:
                 st.success("✅ 회원가입 완료! 로그인 탭에서 로그인해주세요.")
             else:
                 st.error(msg)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# 하단 안내
-st.markdown("""
-<div style="text-align:center; margin-top:32px; color:rgba(255,255,255,0.3); font-size:0.78rem;">
-    © 주식회사 상상우리 · AI리터러시지도사 민간 자격 시험 공식 응시 플랫폼
-</div>
-""", unsafe_allow_html=True)
+footer()

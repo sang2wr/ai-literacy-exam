@@ -3,13 +3,16 @@ import json
 from datetime import datetime
 from utils.database import get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result
 from utils.questions import load_questions
+from utils.theme import inject_base_css, navbar, page_header, icon, footer, logo_path, BRAND
 
 st.set_page_config(
     page_title="내 결과 | AI리터러시지도사",
-    page_icon="📋",
+    page_icon=logo_path("icon"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+inject_base_css()
 
 if not st.session_state.get("logged_in") or not st.session_state.get("user"):
     st.warning("로그인이 필요합니다.")
@@ -19,10 +22,10 @@ if not st.session_state.get("logged_in") or not st.session_state.get("user"):
 user = st.session_state.user
 user_id = user["id"]
 
+navbar(user)
 
 # ── Page ──────────────────────────────────────────────────────────────────────
-st.title("📋 내 시험 결과")
-st.caption(f"{user['name']}님의 시험 기록")
+page_header("내 시험 결과", f"{user['name']}님의 시험 기록", "clipboard-check")
 
 exams = get_user_exams(user_id)
 submitted = [e for e in exams if e["status"] in ("submitted", "graded")]
@@ -124,13 +127,13 @@ for exam in submitted:
                     if q["type"] == "mc":
                         user_idx = ans_row["answer_text"] if ans_row else None
                         is_correct = ans_row["is_correct"] if ans_row else False
-                        icon = "✅" if is_correct else "❌"
+                        mark = "✅" if is_correct else "❌"
                         try:
                             user_text = q["options"][int(user_idx)] if user_idx is not None else "미응답"
                         except Exception:
                             user_text = "미응답"
                         st.markdown(
-                            f"{icon} **{qid}번** {q['text']}  \n"
+                            f"{mark} **{qid}번** {q['text']}  \n"
                             f"내 답: {user_text}"
                         )
                     else:
@@ -140,3 +143,5 @@ for exam in submitted:
                             f"내 답안: {user_ans or '미응답'}"
                         )
                 st.divider()
+
+footer()

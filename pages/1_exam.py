@@ -3,13 +3,16 @@ import streamlit.components.v1 as components
 import time
 from utils.database import get_active_exam, create_exam, submit_exam, get_exam_by_id
 from utils.questions import load_questions, ACTIVE_VERSION
+from utils.theme import inject_base_css, navbar, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
 
 st.set_page_config(
     page_title="시험 응시 | AI리터러시지도사",
-    page_icon="✏️",
+    page_icon=logo_path("icon"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+inject_base_css()
 
 EXAM_MINUTES = 90
 EXAM_SECONDS = EXAM_MINUTES * 60
@@ -22,6 +25,8 @@ if not st.session_state.get("logged_in") or not st.session_state.get("user"):
 
 user = st.session_state.user
 user_id = user["id"]
+
+navbar(user)
 
 # ── Check existing exam ───────────────────────────────────────────────────────
 if "exam_id" in st.session_state:
@@ -52,32 +57,39 @@ def get_remaining():
 
 # ── Pre-exam screen ───────────────────────────────────────────────────────────
 def show_pre_exam():
-    st.title("✏️ AI리터러시지도사 자격시험")
-    st.markdown(f"""
-    ### 시험 안내
-    | 항목 | 내용 |
-    |---|---|
-    | 총 문항 수 | **80문제** (4개 분야 × 20문제) |
-    | 객관식 | 각 분야 18문제 (4지선다) |
-    | 주관식 | 각 분야 2문제 (단답형) |
-    | 제한 시간 | **90분** |
-    | 시험 방식 | 시간 초과 시 자동 제출 |
+    page_header("AI리터러시지도사 자격시험", "응시 전 안내 사항을 확인해주세요", "pencil")
 
-    ### 분야 구성
-    1. AI 개념 이해
-    2. AI와 문제해결
-    3. AI 도구 및 플랫폼 사용
-    4. 지도 계획안 작성
-
-    > ⚠️ 시험 시작 후에는 중간에 나가도 진행 중 상태가 유지됩니다.
-    > 시간이 초과되면 자동으로 제출됩니다.
+    render_html(f"""
+    <div class="sw-info-strip">
+        {info_pill("book-open", "총 문항", "80문제")}
+        {info_pill("clock", "제한 시간", "90분")}
+        {info_pill("list-checks", "객관식", "분야별 18문제")}
+        {info_pill("file-text", "주관식", "분야별 2문제")}
+    </div>
     """)
+
+    areas_preview = ["AI 개념 이해", "AI와 문제해결", "AI 도구 및 플랫폼 사용", "지도 계획안 작성"]
+    area_html = "".join(
+        f'<div class="sw-info-pill"><div class="ic">{icon("grid", 16)}</div>'
+        f'<div class="txt"><b>분야 {i+1}</b><span>{name}</span></div></div>'
+        for i, name in enumerate(areas_preview)
+    )
+    render_html(f"""
+    <div class="sw-card">
+        <p style="font-weight:800;color:{BRAND['ink']};margin:0 0 12px 0;">
+            {icon("layers", 18, BRAND['coral'])} 분야 구성
+        </p>
+        <div class="sw-info-strip" style="margin:0;">{area_html}</div>
+    </div>
+    """)
+
+    st.warning("⚠️ 시험 시작 후에는 중간에 나가도 진행 중 상태가 유지됩니다. 시간이 초과되면 자동으로 제출됩니다.")
 
     # Check if already has a submitted exam
     from utils.database import get_user_exams
     past = [e for e in get_user_exams(user_id) if e["status"] != "in_progress"]
     if past:
-        st.warning("이미 시험을 제출한 기록이 있습니다. 새로 시작하면 기존 기록은 유지됩니다.")
+        st.info("이미 시험을 제출한 기록이 있습니다. 새로 시작하면 기존 기록은 유지됩니다.")
 
     if st.button("🚀 시험 시작하기", type="primary", use_container_width=True):
         with st.spinner("시험을 준비하는 중..."):
@@ -92,12 +104,12 @@ def show_pre_exam():
 def render_timer(deadline_epoch: float):
     timer_html = f"""
     <div id="timer-box" style="
-        background: #1e1e2e; color: white;
-        padding: 12px 24px; border-radius: 10px;
-        font-family: monospace; font-size: 1.6rem;
-        text-align: center; user-select: none;
+        background: linear-gradient(120deg, {BRAND['ink']}, #322C2D); color: #fff;
+        padding: 13px 24px; border-radius: 14px;
+        font-family: 'Pretendard', monospace; font-size: 1.5rem; font-weight: 800;
+        text-align: center; user-select: none; box-shadow: 0 8px 20px rgba(34,30,31,0.22);
     ">
-        ⏱ 남은 시간: <span id="t">--:--</span>
+        ⏱ 남은 시간&nbsp; <span id="t">--:--</span>
     </div>
     <script>
       (function() {{
@@ -110,7 +122,7 @@ def render_timer(deadline_epoch: float):
           var el = document.getElementById('t');
           if (!el) return;
           el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-          if (rem <= 300000) document.getElementById('timer-box').style.color = '#ff4444';
+          if (rem <= 300000) document.getElementById('timer-box').style.background = 'linear-gradient(120deg, {BRAND['coral']}, {BRAND['orange']})';
           if (rem > 0) setTimeout(tick, 1000);
           else el.textContent = '00:00 ⚠ 시간 초과!';
         }}
@@ -159,7 +171,7 @@ def do_submit(auto: bool = False):
 if st.session_state.get("exam_submitted"):
     auto = st.session_state.pop("auto_submitted", False)
     score = st.session_state.pop("mc_score", 0)
-    st.title("✅ 시험 제출 완료")
+    page_header("시험 제출 완료", "수고하셨습니다! 채점 결과는 내 결과 페이지에서 확인할 수 있습니다.", "check-circle")
     if auto:
         st.warning("⏱ 시간이 초과되어 자동으로 제출되었습니다.")
     else:
@@ -194,66 +206,66 @@ if "answers" not in st.session_state:
 # ── Header ────────────────────────────────────────────────────────────────────
 col_title, col_timer = st.columns([3, 1])
 with col_title:
-    st.title("✏️ AI리터러시지도사 자격시험")
+    page_header("AI리터러시지도사 자격시험", "분야별 탭을 이동하며 응시하세요", "pencil")
 with col_timer:
     render_timer(deadline)
 
 st.divider()
 
-# ── Tab CSS (더 돋보이게) ─────────────────────────────────────────────────────
-st.markdown("""
+# ── Tab CSS (브랜드 컬러 + 고령 응시자를 위한 글자 크기 확대) ─────────────────
+render_html(f"""
 <style>
 /* 탭 버튼 기본 */
-[data-testid="stTab"] {
+[data-testid="stTab"] {{
     font-size: 1.15rem !important;
     font-weight: 700 !important;
     padding: 12px 20px !important;
-    border-radius: 10px 10px 0 0 !important;
-    background: #1e2a3a !important;
-    color: #aac8e8 !important;
-    border: 2px solid #2e4a6a !important;
+    border-radius: 12px 12px 0 0 !important;
+    background: {BRAND['card']} !important;
+    color: {BRAND['muted']} !important;
+    border: 2px solid {BRAND['border']} !important;
     border-bottom: none !important;
     margin-right: 6px !important;
     transition: all 0.2s !important;
-}
-[data-testid="stTab"]:hover {
-    background: #2a3f5f !important;
+}}
+[data-testid="stTab"]:hover {{
+    background: #fff6f3 !important;
+    color: {BRAND['coral']} !important;
+}}
+[data-testid="stTab"][aria-selected="true"] {{
+    background: linear-gradient(120deg, {BRAND['coral']}, {BRAND['orange']}) !important;
     color: #ffffff !important;
-}
-[data-testid="stTab"][aria-selected="true"] {
-    background: #1565C0 !important;
-    color: #ffffff !important;
-    border-color: #1565C0 !important;
-    box-shadow: 0 -3px 10px rgba(21,101,192,0.4) !important;
-}
-[role="tablist"] {
+    border-color: transparent !important;
+    box-shadow: 0 -4px 14px rgba(241,88,53,0.35) !important;
+}}
+[role="tablist"] {{
     background: transparent !important;
     gap: 4px !important;
-    border-bottom: 2px solid #1565C0 !important;
+    border-bottom: 2px solid {BRAND['border']} !important;
     padding-bottom: 0 !important;
-}
+}}
 
 /* 고령 응시자를 위한 글자 크기 확대 */
-[data-testid="stMarkdownContainer"] p {
+[data-testid="stMarkdownContainer"] p {{
     font-size: 1.18rem !important;
     line-height: 1.7 !important;
-}
-.stRadio p, .stRadio label {
+}}
+.stRadio p, .stRadio label {{
     font-size: 1.12rem !important;
     line-height: 1.6 !important;
-}
-[data-testid="stCaptionContainer"] p, .stCaptionContainer p {
+}}
+[data-testid="stCaptionContainer"] p, .stCaptionContainer p {{
     font-size: 1.02rem !important;
-}
-.stButton > button {
+}}
+.stButton > button {{
     font-size: 1.12rem !important;
     padding: 0.7rem 1rem !important;
-}
-textarea {
+}}
+textarea {{
     font-size: 1.1rem !important;
-}
+}}
 </style>
-""", unsafe_allow_html=True)
+""")
 
 # ── Question tabs ─────────────────────────────────────────────────────────────
 tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
@@ -358,29 +370,32 @@ for i, area in enumerate(areas):
     answered = sum(1 for q in qs if st.session_state.answers.get(q["id"]) not in [None, ""])
     total_q = len(qs)
     done = answered == total_q
-    bg = "#1b5e20" if done else "#1565C0"
-    border = "#4caf50" if done else "#42a5f5"
+    bg = f"linear-gradient(120deg, {BRAND['teal']}, #2fa392)" if done else BRAND['card']
+    border = BRAND['teal'] if done else BRAND['border']
+    color = "#fff" if done else BRAND['ink']
+    sub_color = "rgba(255,255,255,0.85)" if done else BRAND['muted']
     status_icon = "✅" if done else "📝"
     area_btns_html += f"""
     <button onclick="goToArea({i})" style="
-        background:{bg}; color:#fff; border:2px solid {border};
-        padding:16px 10px; border-radius:12px; cursor:pointer;
+        background:{bg}; color:{color}; border:2px solid {border};
+        padding:16px 10px; border-radius:14px; cursor:pointer;
         font-size:1.05rem; font-weight:700; width:100%;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:all 0.2s;
-        line-height:1.6;
+        box-shadow:0 2px 10px rgba(34,30,31,0.06); transition:all 0.2s;
+        line-height:1.6; font-family:'Pretendard', sans-serif;
     " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
         {status_icon} 분야 {i+1}<br>
         <span style="font-size:0.92rem;font-weight:500">{area['area_name']}</span><br>
-        <span style="font-size:0.88rem;opacity:0.85">{answered}/{total_q} 응답</span>
+        <span style="font-size:0.88rem;opacity:0.85;color:{sub_color}">{answered}/{total_q} 응답</span>
     </button>"""
 
 nav_html = f"""
 <div style="margin:8px 0 20px 0;">
     <div style="
-        background:#0d1b2a; border:1.5px solid #1e3a5f;
-        border-radius:14px; padding:16px; margin-bottom:4px;
+        background:{BRAND['card']}; border:1.5px solid {BRAND['border']};
+        border-radius:16px; padding:16px; margin-bottom:4px;
+        box-shadow:0 4px 16px rgba(34,30,31,0.04);
     ">
-        <p style="color:#90caf9;font-weight:700;font-size:1rem;margin:0 0 12px 0;">
+        <p style="color:{BRAND['ink']};font-weight:800;font-size:1rem;margin:0 0 12px 0;">
             🗂 분야별 바로 이동
         </p>
         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
