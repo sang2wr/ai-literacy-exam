@@ -8,7 +8,7 @@ from utils.database import (
 from utils.questions import load_questions, ACTIVE_VERSION
 import json
 from datetime import datetime
-from utils.theme import inject_base_css, navbar, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
+from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
 
 st.set_page_config(
     page_title="관리자 패널 | AI리터러시지도사",
@@ -30,6 +30,7 @@ if not st.session_state.user.get("is_admin"):
     st.stop()
 
 navbar(st.session_state.user)
+font_scale_control()
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 page_header("관리자 패널", "시험 결과 관리 및 채점", "shield")
@@ -47,13 +48,13 @@ render_html(f"""
 </div>
 """)
 
-tab1, tab2, tab3 = st.tabs(["📋 전체 결과 목록", "✏️ 점수 입력 / 채점", "📝 정답표"])
+tab1, tab2, tab3 = st.tabs(["전체 결과 목록", "점수 입력 / 채점", "정답표"])
 
 # ── Tab 1: Summary table ──────────────────────────────────────────────────────
 with tab1:
     col_refresh, col_info = st.columns([1, 4])
     with col_refresh:
-        if st.button("🔄 새로고침"):
+        if st.button("새로고침"):
             st.cache_data.clear()
             st.rerun()
 
@@ -100,7 +101,7 @@ with tab1:
         # Export
         csv = df.to_csv(index=False, encoding="utf-8-sig")
         st.download_button(
-            "📥 CSV 다운로드",
+            "CSV 다운로드",
             data=csv,
             file_name="시험결과.csv",
             mime="text/csv",
@@ -123,21 +124,21 @@ with tab1:
             with col_info:
                 st.markdown(f"**{name}** ({email}) | {submitted_at} | {status_label} | 객관식 {e.get('mc_score', 0)}점")
             with col_btn:
-                if st.button("🗑 삭제", key=f"del_{exam_id}"):
+                if st.button("삭제", key=f"del_{exam_id}"):
                     st.session_state[f"confirm_del_{exam_id}"] = True
 
             if st.session_state.get(f"confirm_del_{exam_id}"):
-                st.warning(f"⚠️ **{name}**님의 시험 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")
+                st.warning(f"**{name}**님의 시험 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("✅ 삭제 확인", key=f"confirm_yes_{exam_id}", type="primary"):
+                    if st.button("삭제 확인", key=f"confirm_yes_{exam_id}", type="primary"):
                         if delete_exam(exam_id):
                             st.success("삭제되었습니다. 응시자가 재시험을 볼 수 있습니다.")
                             st.session_state.pop(f"confirm_del_{exam_id}", None)
                             st.cache_data.clear()
                             st.rerun()
                 with c2:
-                    if st.button("❌ 취소", key=f"confirm_no_{exam_id}"):
+                    if st.button("취소", key=f"confirm_no_{exam_id}"):
                         st.session_state.pop(f"confirm_del_{exam_id}", None)
                         st.rerun()
 
@@ -167,24 +168,24 @@ with tab1:
                     f"**{name}** ({email}) | 시작: {created_at} | 문제 버전: `{version}`"
                 )
             with col_btn:
-                if st.button("🗑 삭제", key=f"del_ip_{exam_id}"):
+                if st.button("삭제", key=f"del_ip_{exam_id}"):
                     st.session_state[f"confirm_del_ip_{exam_id}"] = True
 
             if st.session_state.get(f"confirm_del_ip_{exam_id}"):
                 st.warning(
-                    f"⚠️ **{name}**님의 응시 중 기록을 삭제하시겠습니까? "
+                    f"**{name}**님의 응시 중 기록을 삭제하시겠습니까? "
                     "다음 로그인 시 현재 활성 버전으로 새로 시작합니다."
                 )
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("✅ 삭제 확인", key=f"confirm_ip_yes_{exam_id}", type="primary"):
+                    if st.button("삭제 확인", key=f"confirm_ip_yes_{exam_id}", type="primary"):
                         if delete_exam(exam_id):
                             st.success("삭제되었습니다.")
                             st.session_state.pop(f"confirm_del_ip_{exam_id}", None)
                             st.cache_data.clear()
                             st.rerun()
                 with c2:
-                    if st.button("❌ 취소", key=f"confirm_ip_no_{exam_id}"):
+                    if st.button("취소", key=f"confirm_ip_no_{exam_id}"):
                         st.session_state.pop(f"confirm_del_ip_{exam_id}", None)
                         st.rerun()
 
@@ -206,7 +207,7 @@ with tab2:
         exam_id = exam["id"]
         u = exam.get("users") or {}
         areas = load_questions(exam.get("question_version"))
-        st.caption(f"📄 문제 버전: {exam.get('question_version') or 'v1'}")
+        st.caption(f"문제 버전: {exam.get('question_version') or 'v1'}")
 
         # ── 기존 주관식 점수 로드 (문항별) ───────────────────────────────────
         existing_q_scores = {}
@@ -297,7 +298,7 @@ with tab2:
                     with col_q:
                         st.markdown(f"**{qid}번.** {q['text']}")
                         if q.get("answer"):
-                            st.caption(f"📌 예시 답안: {q['answer'][:80]}{'...' if len(q.get('answer','')) > 80 else ''}")
+                            st.caption(f"예시 답안: {q['answer'][:80]}{'...' if len(q.get('answer','')) > 80 else ''}")
                         st.text_area(
                             "응시자 답안",
                             value=user_ans or "미응답",
@@ -341,7 +342,7 @@ with tab2:
                 height=70,
             )
             save = st.form_submit_button(
-                "💾 점수 저장 및 합격 판정",
+                "점수 저장 및 합격 판정",
                 type="primary",
                 use_container_width=True,
             )
@@ -403,7 +404,7 @@ with tab3:
         mc_qs = [q for q in area["questions"] if q["type"] == "mc"]
         sa_qs = [q for q in area["questions"] if q["type"] == "sa"]
 
-        with st.expander(f"📚 분야 {area['area_id']}: {area['area_name']}  ({len(mc_qs)}문항)", expanded=False):
+        with st.expander(f"분야 {area['area_id']}: {area['area_name']}  ({len(mc_qs)}문항)", expanded=False):
             # MC 정답표
             rows = []
             for q in mc_qs:
@@ -425,7 +426,7 @@ with tab3:
                     st.markdown(f"**{q['id']}번.** {q['text']}")
                     answer = q.get("answer", "")
                     if answer:
-                        st.success(f"✅ 정답/예시: {answer}")
+                        st.success(f"정답/예시: {answer}")
                     else:
                         st.caption("수동 채점")
 
@@ -455,7 +456,7 @@ with tab3:
                 })
     csv = pd.DataFrame(all_rows).to_csv(index=False, encoding="utf-8-sig")
     st.download_button(
-        "📥 전체 정답표 CSV 다운로드",
+        "전체 정답표 CSV 다운로드",
         data=csv,
         file_name="정답표.csv",
         mime="text/csv",

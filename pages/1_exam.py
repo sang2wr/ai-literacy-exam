@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import time
 from utils.database import get_active_exam, create_exam, submit_exam, get_exam_by_id
 from utils.questions import load_questions, ACTIVE_VERSION
-from utils.theme import inject_base_css, navbar, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
+from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
 
 st.set_page_config(
     page_title="시험 응시 | AI리터러시지도사",
@@ -27,6 +27,7 @@ user = st.session_state.user
 user_id = user["id"]
 
 navbar(user)
+font_scale_control()
 
 # ── Check existing exam ───────────────────────────────────────────────────────
 if "exam_id" in st.session_state:
@@ -83,7 +84,7 @@ def show_pre_exam():
     </div>
     """)
 
-    st.warning("⚠️ 시험 시작 후에는 중간에 나가도 진행 중 상태가 유지됩니다. 시간이 초과되면 자동으로 제출됩니다.")
+    st.warning("시험 시작 후에는 중간에 나가도 진행 중 상태가 유지됩니다. 시간이 초과되면 자동으로 제출됩니다.")
 
     # Check if already has a submitted exam
     from utils.database import get_user_exams
@@ -91,7 +92,7 @@ def show_pre_exam():
     if past:
         st.info("이미 시험을 제출한 기록이 있습니다. 새로 시작하면 기존 기록은 유지됩니다.")
 
-    if st.button("🚀 시험 시작하기", type="primary", use_container_width=True):
+    if st.button("시험 시작하기", type="primary", use_container_width=True):
         with st.spinner("시험을 준비하는 중..."):
             exam = create_exam(user_id)
         st.session_state.exam_id = exam["id"]
@@ -104,12 +105,12 @@ def show_pre_exam():
 def render_timer(deadline_epoch: float):
     timer_html = f"""
     <div id="timer-box" style="
-        background: linear-gradient(120deg, {BRAND['ink']}, #322C2D); color: #fff;
-        padding: 13px 24px; border-radius: 14px;
-        font-family: 'Pretendard', monospace; font-size: 1.5rem; font-weight: 800;
-        text-align: center; user-select: none; box-shadow: 0 8px 20px rgba(34,30,31,0.22);
+        background: {BRAND['ink']}; color: #fff;
+        padding: 16px 24px; border-radius: 14px;
+        font-family: 'Pretendard', monospace; font-size: 1.7rem; font-weight: 800;
+        text-align: center; user-select: none; box-shadow: 0 6px 16px rgba(20,18,18,0.18);
     ">
-        ⏱ 남은 시간&nbsp; <span id="t">--:--</span>
+        남은 시간&nbsp; <span id="t">--:--</span>
     </div>
     <script>
       (function() {{
@@ -122,15 +123,15 @@ def render_timer(deadline_epoch: float):
           var el = document.getElementById('t');
           if (!el) return;
           el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-          if (rem <= 300000) document.getElementById('timer-box').style.background = 'linear-gradient(120deg, {BRAND['coral']}, {BRAND['orange']})';
+          if (rem <= 300000) document.getElementById('timer-box').style.background = '{BRAND['coral']}';
           if (rem > 0) setTimeout(tick, 1000);
-          else el.textContent = '00:00 ⚠ 시간 초과!';
+          else el.textContent = '00:00 시간 초과!';
         }}
         tick();
       }})();
     </script>
     """
-    components.html(timer_html, height=70)
+    components.html(timer_html, height=88)
 
 # ── Auto-submit logic ─────────────────────────────────────────────────────────
 def do_submit(auto: bool = False):
@@ -178,7 +179,7 @@ if st.session_state.get("exam_submitted"):
         st.success("시험이 성공적으로 제출되었습니다!")
     st.metric("객관식 자동 채점 점수", f"{score}점 / 72점")
     st.info("주관식 및 실기 점수는 관리자가 채점 후 반영됩니다.")
-    st.page_link("pages/2_results.py", label="📋 내 결과 보기")
+    st.page_link("pages/2_results.py", label="내 결과 보기")
     st.stop()
 
 # ── Pre-exam ──────────────────────────────────────────────────────────────────
@@ -217,26 +218,25 @@ render_html(f"""
 <style>
 /* 탭 버튼 기본 */
 [data-testid="stTab"] {{
-    font-size: 1.15rem !important;
+    font-size: 1.2rem !important;
     font-weight: 700 !important;
-    padding: 12px 20px !important;
+    padding: 14px 22px !important;
     border-radius: 12px 12px 0 0 !important;
     background: {BRAND['card']} !important;
     color: {BRAND['muted']} !important;
-    border: 2px solid {BRAND['border']} !important;
+    border: 1.5px solid {BRAND['border']} !important;
     border-bottom: none !important;
-    margin-right: 6px !important;
+    margin-right: 8px !important;
     transition: all 0.2s !important;
 }}
 [data-testid="stTab"]:hover {{
-    background: #fff6f3 !important;
     color: {BRAND['coral']} !important;
 }}
 [data-testid="stTab"][aria-selected="true"] {{
-    background: linear-gradient(120deg, {BRAND['coral']}, {BRAND['orange']}) !important;
+    background: {BRAND['coral']} !important;
     color: #ffffff !important;
     border-color: transparent !important;
-    box-shadow: 0 -4px 14px rgba(241,88,53,0.35) !important;
+    box-shadow: 0 -4px 14px rgba(241,88,53,0.25) !important;
 }}
 [role="tablist"] {{
     background: transparent !important;
@@ -247,28 +247,28 @@ render_html(f"""
 
 /* 고령 응시자를 위한 글자 크기 확대 */
 [data-testid="stMarkdownContainer"] p {{
-    font-size: 1.18rem !important;
-    line-height: 1.7 !important;
+    font-size: 1.22rem !important;
+    line-height: 1.75 !important;
 }}
 .stRadio p, .stRadio label {{
-    font-size: 1.12rem !important;
-    line-height: 1.6 !important;
+    font-size: 1.16rem !important;
+    line-height: 1.65 !important;
 }}
 [data-testid="stCaptionContainer"] p, .stCaptionContainer p {{
-    font-size: 1.02rem !important;
+    font-size: 1.05rem !important;
 }}
 .stButton > button {{
-    font-size: 1.12rem !important;
-    padding: 0.7rem 1rem !important;
+    font-size: 1.15rem !important;
+    padding: 0.8rem 1.1rem !important;
 }}
 textarea {{
-    font-size: 1.1rem !important;
+    font-size: 1.12rem !important;
 }}
 </style>
 """)
 
 # ── Question tabs ─────────────────────────────────────────────────────────────
-tabs = st.tabs([f"📚 분야{a['area_id']} {a['area_name']}" for a in areas])
+tabs = st.tabs([f"분야{a['area_id']} {a['area_name']}" for a in areas])
 
 # 탭 클릭 시 스크롤 최상단 이동
 components.html("""
@@ -360,7 +360,7 @@ total_answered = sum(
     1 for area in areas for q in area["questions"]
     if st.session_state.answers.get(q["id"]) not in [None, ""]
 )
-st.caption(f"📝 응답 완료: {total_answered} / 80문제")
+st.caption(f"응답 완료: {total_answered} / 80문제")
 st.progress(total_answered / 80)
 
 # ── 분야별 이동 탭 (최종 제출 위) ─────────────────────────────────────────────
@@ -370,35 +370,35 @@ for i, area in enumerate(areas):
     answered = sum(1 for q in qs if st.session_state.answers.get(q["id"]) not in [None, ""])
     total_q = len(qs)
     done = answered == total_q
-    bg = f"linear-gradient(120deg, {BRAND['teal']}, #2fa392)" if done else BRAND['card']
-    border = BRAND['teal'] if done else BRAND['border']
+    bg = BRAND['coral'] if done else BRAND['card']
+    border = "transparent" if done else BRAND['border']
     color = "#fff" if done else BRAND['ink']
-    sub_color = "rgba(255,255,255,0.85)" if done else BRAND['muted']
-    status_icon = "✅" if done else "📝"
+    sub_color = "rgba(255,255,255,0.8)" if done else BRAND['muted']
+    status_mark = icon("check-circle", 17, "#fff") + " " if done else ""
     area_btns_html += f"""
     <button onclick="goToArea({i})" style="
-        background:{bg}; color:{color}; border:2px solid {border};
-        padding:16px 10px; border-radius:14px; cursor:pointer;
-        font-size:1.05rem; font-weight:700; width:100%;
-        box-shadow:0 2px 10px rgba(34,30,31,0.06); transition:all 0.2s;
-        line-height:1.6; font-family:'Pretendard', sans-serif;
-    " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-        {status_icon} 분야 {i+1}<br>
-        <span style="font-size:0.92rem;font-weight:500">{area['area_name']}</span><br>
-        <span style="font-size:0.88rem;opacity:0.85;color:{sub_color}">{answered}/{total_q} 응답</span>
+        background:{bg}; color:{color}; border:1.5px solid {border};
+        padding:20px 12px; border-radius:14px; cursor:pointer;
+        font-size:1.15rem; font-weight:700; width:100%;
+        box-shadow:{'0 6px 16px rgba(241,88,53,0.28)' if done else '0 1px 2px rgba(20,18,18,0.04)'}; transition:filter 0.2s, transform 0.15s;
+        line-height:1.65; font-family:'Pretendard', sans-serif;
+    " onmouseover="this.style.filter='brightness(0.97)';this.style.transform='translateY(-1px)'" onmouseout="this.style.filter='none';this.style.transform='none'">
+        {status_mark}분야 {i+1}<br>
+        <span style="font-size:1rem;font-weight:600">{area['area_name']}</span><br>
+        <span style="font-size:0.95rem;color:{sub_color}">{answered}/{total_q} 응답</span>
     </button>"""
 
 nav_html = f"""
 <div style="margin:8px 0 20px 0;">
     <div style="
-        background:{BRAND['card']}; border:1.5px solid {BRAND['border']};
-        border-radius:16px; padding:16px; margin-bottom:4px;
-        box-shadow:0 4px 16px rgba(34,30,31,0.04);
+        background:{BRAND['card']}; border:1px solid {BRAND['border']};
+        border-radius:18px; padding:22px; margin-bottom:4px;
+        box-shadow:0 2px 4px rgba(20,18,18,0.03), 0 8px 20px rgba(20,18,18,0.04);
     ">
-        <p style="color:{BRAND['ink']};font-weight:800;font-size:1rem;margin:0 0 12px 0;">
-            🗂 분야별 바로 이동
+        <p style="color:{BRAND['ink']};font-weight:800;font-size:1.15rem;margin:0 0 16px 0;">
+            분야별 바로 이동
         </p>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
             {area_btns_html}
         </div>
     </div>
@@ -431,7 +431,7 @@ function goToArea(idx) {{
 }}
 </script>
 """
-components.html(nav_html, height=195)
+components.html(nav_html, height=230)
 
 # ── Submit button ─────────────────────────────────────────────────────────────
 st.markdown("### 최종 제출")
@@ -439,17 +439,17 @@ st.warning("제출 후에는 수정이 불가능합니다. 모든 문제에 답�
 
 col1, col2 = st.columns([3, 1])
 with col2:
-    if st.button("📤 최종 제출", type="primary", use_container_width=True):
+    if st.button("최종 제출", type="primary", use_container_width=True):
         st.session_state.confirm_submit = True
 
 if st.session_state.get("confirm_submit"):
     st.error("정말로 제출하시겠습니까? 이 작업은 되돌릴 수 없습니다.")
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("✅ 예, 제출합니다", type="primary", use_container_width=True):
+        if st.button("예, 제출합니다", type="primary", use_container_width=True):
             st.session_state.confirm_submit = False
             do_submit(auto=False)
     with c2:
-        if st.button("❌ 취소", use_container_width=True):
+        if st.button("취소", use_container_width=True):
             st.session_state.confirm_submit = False
             st.rerun()

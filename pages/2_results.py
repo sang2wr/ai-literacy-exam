@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from utils.database import get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result
 from utils.questions import load_questions
-from utils.theme import inject_base_css, navbar, page_header, icon, footer, logo_path, BRAND
+from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, footer, logo_path, BRAND
 
 st.set_page_config(
     page_title="내 결과 | AI리터러시지도사",
@@ -23,6 +23,7 @@ user = st.session_state.user
 user_id = user["id"]
 
 navbar(user)
+font_scale_control()
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 page_header("내 시험 결과", f"{user['name']}님의 시험 기록", "clipboard-check")
@@ -32,7 +33,7 @@ submitted = [e for e in exams if e["status"] in ("submitted", "graded")]
 
 if not submitted:
     st.info("아직 제출된 시험 기록이 없습니다.")
-    st.page_link("pages/1_exam.py", label="✏️ 시험 응시하러 가기")
+    st.page_link("pages/1_exam.py", label="시험 응시하러 가기")
     st.stop()
 
 for exam in submitted:
@@ -47,7 +48,7 @@ for exam in submitted:
 
     areas = load_questions(exam.get("question_version"))
 
-    with st.expander(f"📄 시험 결과 — {submitted_at}  |  상태: {status_label}", expanded=True):
+    with st.expander(f"시험 결과 — {submitted_at}  |  상태: {status_label}", expanded=True):
         mc_correct_total = exam.get("mc_score", 0) or 0
         practical = exam.get("practical_score")
         p_result = exam.get("practical_result", "")
@@ -57,18 +58,18 @@ for exam in submitted:
         # ── 합격 판정 배너 ──────────────────────────────────────────────────
         if exam["status"] == "graded":
             if p_result == "합격" and written_result == "합격":
-                st.success("🎉 최종 합격! 필기 합격 + 실기 합격")
+                st.success("최종 합격! 필기 합격 + 실기 합격")
             elif written_result == "합격" and not p_result:
-                st.info("✅ 필기 합격 — 실기 시험 대상자입니다.")
+                st.info("필기 합격 — 실기 시험 대상자입니다.")
             elif written_result == "탈락":
-                st.error("❌ 필기 불합격")
+                st.error("필기 불합격")
             elif p_result == "불합격":
-                st.error("❌ 실기 불합격")
+                st.error("실기 불합격")
         else:
             st.warning("⏳ 채점 대기 중 — 주관식 채점 후 합격 여부가 확정됩니다.")
 
         # ── 필기 점수 요약 ───────────────────────────────────────────────────
-        st.markdown("#### 📊 필기시험 점수")
+        st.markdown("#### 필기시험 점수")
 
         # Per-area breakdown
         area_mc = get_area_mc_scores(exam["id"])
@@ -104,18 +105,18 @@ for exam in submitted:
 
         # ── 실기 점수 ────────────────────────────────────────────────────────
         if exam["status"] == "graded":
-            st.markdown("#### 🎤 실기시험")
+            st.markdown("#### 실기시험")
             if written_result == "합격":
                 col1, col2 = st.columns(2)
                 col1.metric("실기 점수", f"{practical}점" if practical is not None else "-")
                 col2.metric("실기 결과", p_result or "-")
                 if p_notes:
-                    st.info(f"📝 강사 코멘트: {p_notes}")
+                    st.info(f"강사 코멘트: {p_notes}")
             else:
                 st.caption("필기 불합격으로 실기 시험 대상이 아닙니다.")
 
         # ── 내 답안 보기 ─────────────────────────────────────────────────────
-        if st.checkbox("📖 내 답안 보기", key=f"show_{exam['id']}"):
+        if st.checkbox("내 답안 보기", key=f"show_{exam['id']}"):
             answers = get_exam_answers(exam["id"])
             ans_map = {a["question_id"]: a for a in answers}
 
@@ -139,7 +140,7 @@ for exam in submitted:
                     else:
                         user_ans = ans_row["answer_text"] if ans_row else "미응답"
                         st.markdown(
-                            f"📝 **{qid}번** {q['text']}  \n"
+                            f"**{qid}번** {q['text']}  \n"
                             f"내 답안: {user_ans or '미응답'}"
                         )
                 st.divider()
