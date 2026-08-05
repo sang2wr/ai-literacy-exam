@@ -243,6 +243,15 @@ render_html(f"""
     gap: 4px !important;
     border-bottom: 2px solid {BRAND['border']} !important;
     padding-bottom: 0 !important;
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+}}
+[data-testid="stTab"] {{
+    white-space: normal !important;
+}}
+[data-testid="stTab"] p {{
+    white-space: normal !important;
+    word-break: keep-all !important;
 }}
 
 /* 고령 응시자를 위한 글자 크기 확대 */
@@ -331,7 +340,7 @@ for tab, area in zip(tabs, areas):
             current = st.session_state.answers.get(qid, None)
             idx = current if isinstance(current, int) and 0 <= current < 4 else None
             choice = st.radio(
-                f"**{qid}번.** {q['text']}",
+                f"**{qid}번. {q['text']}**",
                 options=list(range(4)),
                 format_func=lambda i, opts=q["options"]: f"{'①②③④'[i]} {opts[i]}",
                 index=idx,
@@ -345,7 +354,7 @@ for tab, area in zip(tabs, areas):
             qid = q["id"]
             current = st.session_state.answers.get(qid, "")
             answer = st.text_area(
-                f"**{qid}번.** {q['text']}",
+                f"**{qid}번. {q['text']}**",
                 value=current,
                 height=130,
                 key=f"sa_{qid}",
@@ -398,12 +407,24 @@ nav_html = f"""
         <p style="color:{BRAND['ink']};font-weight:800;font-size:1.15rem;margin:0 0 16px 0;">
             분야별 바로 이동
         </p>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:14px;">
             {area_btns_html}
         </div>
     </div>
 </div>
 <script>
+function resizeFrame() {{
+    try {{
+        if (window.frameElement) {{
+            window.frameElement.style.height = (document.body.scrollHeight + 24) + 'px';
+        }}
+    }} catch (e) {{}}
+}}
+window.addEventListener('load', resizeFrame);
+window.addEventListener('resize', resizeFrame);
+setTimeout(resizeFrame, 100);
+setTimeout(resizeFrame, 400);
+
 function getTopDoc() {{
     var candidates = [];
     try {{ candidates.push(window.parent.document); }} catch (e) {{}}

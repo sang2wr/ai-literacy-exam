@@ -134,13 +134,13 @@ for exam in submitted:
                         except Exception:
                             user_text = "미응답"
                         st.markdown(
-                            f"{mark} **{qid}번** {q['text']}  \n"
+                            f"{mark} **{qid}번 {q['text']}**  \n"
                             f"내 답: {user_text}"
                         )
                     else:
                         user_ans = ans_row["answer_text"] if ans_row else "미응답"
                         st.markdown(
-                            f"**{qid}번** {q['text']}  \n"
+                            f"**{qid}번 {q['text']}**  \n"
                             f"내 답안: {user_ans or '미응답'}"
                         )
                 st.divider()

@@ -296,7 +296,7 @@ with tab2:
 
                     col_q, col_score = st.columns([5, 1])
                     with col_q:
-                        st.markdown(f"**{qid}번.** {q['text']}")
+                        st.markdown(f"**{qid}번. {q['text']}**")
                         if q.get("answer"):
                             st.caption(f"예시 답안: {q['answer'][:80]}{'...' if len(q.get('answer','')) > 80 else ''}")
                         st.text_area(

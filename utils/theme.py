@@ -114,12 +114,17 @@ def inject_base_css():
     html, body, [class*="css"], [data-testid="stAppViewContainer"] * {{
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
+    /* 글자 크기를 키워도 단어 중간이 아니라 어절 단위로 줄바꿈되도록 */
+    p, span, label, div, button, li, h1, h2, h3, h4 {{
+        word-break: keep-all !important;
+        overflow-wrap: break-word !important;
+    }}
     [data-testid="stIconMaterial"] {{
         font-family: 'Material Symbols Rounded' !important;
     }}
     [data-testid="stAppViewContainer"] {{ background: {BRAND['bg']}; }}
     [data-testid="stHeader"] {{ background: transparent; }}
-    .block-container {{ padding-top: 1.6rem; padding-bottom: 3.5rem; max-width: 1140px; }}
+    .block-container {{ padding-top: 1.6rem; padding-bottom: 3.5rem; max-width: 1400px; padding-left: 2.5rem; padding-right: 2.5rem; }}
     #MainMenu, footer {{ visibility: hidden; }}
     [data-testid="stExpandSidebarButton"] {{ display: none !important; }}
 
@@ -213,9 +218,10 @@ def inject_base_css():
     /* ── 네비게이션 카드 버튼 (홈 화면 전용, .st-key-home_nav_row로 범위 한정) ── */
     .st-key-home_nav_row [data-testid="stBaseButton-secondary"] {{
         background:{BRAND['card']} !important; border:1.5px solid {BRAND['border']} !important;
-        border-radius:18px !important; padding:32px 26px !important; color:{BRAND['ink']} !important;
-        font-size:1.15rem !important; font-weight:700 !important; min-height:140px !important;
-        white-space:pre-line !important; line-height:1.8 !important; text-align:left !important;
+        border-radius:18px !important; padding:28px 26px !important; color:{BRAND['ink']} !important;
+        font-size:1.3rem !important; font-weight:800 !important; min-height:96px !important;
+        white-space:normal !important; line-height:1.5 !important; text-align:center !important;
+        display:flex !important; align-items:center !important; justify-content:center !important;
         box-shadow:0 2px 4px rgba(20,18,18,0.03) !important;
         transition: border-color .18s, box-shadow .18s, transform .15s !important;
     }}
@@ -225,10 +231,11 @@ def inject_base_css():
     }}
     .st-key-home_nav_row [data-testid="stBaseButton-primary"] {{
         background:{BRAND['coral']} !important;
-        border:none !important; border-radius:18px !important; padding:32px 26px !important;
-        color:#fff !important; font-size:1.15rem !important; font-weight:700 !important;
-        min-height:140px !important; white-space:pre-line !important; line-height:1.8 !important;
-        text-align:left !important; box-shadow:0 10px 26px rgba(241,88,53,0.32) !important;
+        border:none !important; border-radius:18px !important; padding:28px 26px !important;
+        color:#fff !important; font-size:1.3rem !important; font-weight:800 !important;
+        min-height:96px !important; white-space:normal !important; line-height:1.5 !important;
+        text-align:center !important; box-shadow:0 10px 26px rgba(241,88,53,0.32) !important;
+        display:flex !important; align-items:center !important; justify-content:center !important;
         transition: filter .18s, transform .15s !important;
     }}
     .st-key-home_nav_row [data-testid="stBaseButton-primary"]:hover {{

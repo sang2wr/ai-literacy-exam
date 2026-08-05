@@ -85,21 +85,21 @@ if st.session_state.logged_in and st.session_state.user:
         if is_admin:
             c1, c2, c3 = st.columns(3)
             with c1:
-                if st.button("시험 응시하기\n자격시험 시작하기", key="nav_exam", use_container_width=True, type="primary"):
+                if st.button("시험 응시하기", key="nav_exam", use_container_width=True, type="primary"):
                     st.switch_page("pages/1_exam.py")
             with c2:
-                if st.button("내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                if st.button("내 결과 보기", key="nav_results", use_container_width=True):
                     st.switch_page("pages/2_results.py")
             with c3:
-                if st.button("관리자 패널\n채점 및 결과 관리", key="nav_admin", use_container_width=True):
+                if st.button("관리자 패널", key="nav_admin", use_container_width=True):
                     st.switch_page("pages/3_admin.py")
         else:
             c1, c2 = st.columns(2)
             with c1:
-                if st.button("시험 응시하기\n자격시험 시작하기", key="nav_exam", use_container_width=True, type="primary"):
+                if st.button("시험 응시하기", key="nav_exam", use_container_width=True, type="primary"):
                     st.switch_page("pages/1_exam.py")
             with c2:
-                if st.button("내 결과 보기\n점수 및 합격 확인", key="nav_results", use_container_width=True):
+                if st.button("내 결과 보기", key="nav_results", use_container_width=True):
                     st.switch_page("pages/2_results.py")
 
     # 시험 안내 요약
