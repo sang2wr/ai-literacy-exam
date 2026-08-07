@@ -51,6 +51,83 @@ render_html(f"""
 }}
 .welcome-name {{ font-size: 1.5rem; font-weight: 800; color:#fff; }}
 .welcome-sub {{ font-size: 0.98rem; color:rgba(255,255,255,0.85); margin-top: 3px; font-weight: 600; }}
+
+/* ── 랜딩 화면 전용: 아이콘 메뉴줄 ─────────────────────────────────────── */
+.sw-landing-nav {{
+    display:flex; gap:14px; flex-wrap:wrap; justify-content:center;
+    margin: 6px 0 26px 0;
+}}
+.sw-landing-nav a {{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    text-decoration:none; min-width:104px; padding:16px 10px;
+    background:{BRAND['card']}; border:1px solid {BRAND['border']}; border-radius:16px;
+    box-shadow:0 2px 4px rgba(20,18,18,0.03);
+    transition: border-color .15s, transform .15s, box-shadow .15s;
+}}
+.sw-landing-nav a:hover {{
+    border-color:{BRAND['coral']}; transform:translateY(-2px);
+    box-shadow:0 10px 22px rgba(241,88,53,0.14);
+}}
+.sw-landing-nav a .ic {{
+    width:44px; height:44px; border-radius:12px; background:rgba(241,88,53,0.08);
+    color:{BRAND['coral']}; display:flex; align-items:center; justify-content:center;
+}}
+.sw-landing-nav a span.lbl {{ font-size:0.9rem; font-weight:700; color:{BRAND['ink']}; }}
+
+/* ── 랜딩 화면 전용: 2단 정적 히어로 (텍스트 좌 / 그래픽 우) ───────────── */
+.sw-hero2 {{
+    display:flex; align-items:center; justify-content:space-between; gap:32px;
+    background: linear-gradient(175deg, {BRAND['ink']} 0%, #2B2627 100%);
+    border-top: 6px solid {BRAND['coral']};
+    border-radius: 22px; padding: 52px 44px;
+    box-shadow: 0 2px 4px rgba(20,18,18,0.06), 0 20px 44px rgba(20,18,18,0.18);
+    margin-bottom: 22px;
+}}
+.sw-hero2-left {{ flex:1; min-width:280px; }}
+.sw-hero2-eyebrow {{
+    font-size: 0.9rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+    color: {BRAND['orange']}; margin-bottom: 14px;
+}}
+.sw-hero2-title {{
+    font-family: 'Noto Serif KR', 'Pretendard', serif;
+    font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1.32;
+    margin-bottom: 14px; letter-spacing: -0.3px;
+}}
+.sw-hero2-sub {{ font-size: 1.05rem; color: rgba(255,255,255,0.72); font-weight: 500; margin-bottom: 26px; }}
+.sw-hero2-graphic {{
+    flex-shrink:0; width:180px; height:180px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, rgba(241,88,53,0.35), rgba(241,88,53,0.08) 70%);
+    border: 1.5px solid rgba(255,255,255,0.14);
+    display:flex; align-items:center; justify-content:center;
+}}
+a.sw-cta-link {{
+    display:inline-flex; align-items:center; gap:10px; text-decoration:none;
+    background:{BRAND['coral']}; color:#fff !important; font-weight:800; font-size:1.05rem;
+    padding:16px 28px; border-radius:14px;
+    box-shadow:0 10px 26px rgba(241,88,53,0.35);
+    transition: filter .15s, transform .15s;
+}}
+a.sw-cta-link:hover {{ filter:brightness(1.06); transform:translateY(-1px); }}
+
+/* ── 랜딩 화면 전용: 컬러 카드 3종 ─────────────────────────────────────── */
+.sw-feature-row {{ display:flex; gap:18px; flex-wrap:wrap; margin: 8px 0 30px 0; }}
+.sw-feature-card {{
+    flex:1; min-width:230px; scroll-margin-top: 24px;
+    background:{BRAND['card']}; border:1px solid {BRAND['border']};
+    border-top: 5px solid var(--accent); border-radius:18px; padding:24px 22px;
+    box-shadow:0 2px 4px rgba(20,18,18,0.03), 0 8px 20px rgba(20,18,18,0.04);
+}}
+.sw-feature-card .ic {{
+    width:46px; height:46px; border-radius:13px; background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; margin-bottom:14px;
+}}
+.sw-feature-card h3 {{ font-size:1.15rem; font-weight:800; margin:0 0 8px 0; color:{BRAND['ink']}; }}
+.sw-feature-card p {{ font-size:0.95rem; color:{BRAND['muted']}; line-height:1.6; margin:0; }}
+
+#verify {{ scroll-margin-top: 24px; }}
+.sw-verify-heading {{ text-align:center; margin: 6px 0 18px 0; }}
+.sw-verify-heading h2 {{ font-size:1.5rem; font-weight:800; color:{BRAND['ink']}; margin:0 0 6px 0; }}
+.sw-verify-heading p {{ font-size:0.98rem; color:{BRAND['muted']}; margin:0; }}
 </style>
 """)
 
@@ -120,26 +197,58 @@ if st.session_state.logged_in and st.session_state.user:
     footer()
     st.stop()
 
-# ── Login / Register ──────────────────────────────────────────────────────────
+# ── Login / Register (랜딩) ──────────────────────────────────────────────────
+navbar(None)
+
 render_html(f"""
-<div class="sw-hero">
-    <img class="sw-hero-logo" src="{logo_data_uri('white')}" alt="상상우리" />
-    <div class="sw-hero-eyebrow">주식회사 상상우리</div>
-    <div class="sw-hero-title">AI리터러시지도사<br>민간 자격 시험</div>
-    <div class="sw-hero-sub">자격시험 응시 플랫폼에 오신 것을 환영합니다</div>
+<div class="sw-hero2">
+    <div class="sw-hero2-left">
+        <div class="sw-hero2-eyebrow">주식회사 상상우리</div>
+        <div class="sw-hero2-title">AI리터러시지도사<br>민간 자격 시험</div>
+        <div class="sw-hero2-sub">4개 분야 · 총 80문제로 AI 리터러시 지도 역량을 검증하는 공식 자격시험입니다.</div>
+        <a class="sw-cta-link" href="#verify">{icon("shield", 20, "#fff")} 지금 본인인증하고 응시하기</a>
+    </div>
+    <div class="sw-hero2-graphic">{icon("award", 76, "#F15835", 1.4)}</div>
 </div>
 """)
 
 render_html(f"""
-<div class="sw-info-strip">
-    {info_pill("clock", "제한시간", "90분")}
-    {info_pill("book-open", "총 문항", "80문제")}
-    {info_pill("target", "합격 기준", "평균 60점↑")}
-    {info_pill("grid", "시험 구성", "4개 분야")}
+<div class="sw-landing-nav">
+    <a href="#intro"><span class="ic">{icon("file-text", 20)}</span><span class="lbl">시험 소개</span></a>
+    <a href="#criteria"><span class="ic">{icon("target", 20)}</span><span class="lbl">합격 기준</span></a>
+    <a href="#guide"><span class="ic">{icon("list-checks", 20)}</span><span class="lbl">응시 안내</span></a>
+    <a href="#verify"><span class="ic">{icon("shield", 20)}</span><span class="lbl">본인인증</span></a>
 </div>
 """)
 
-st.markdown('<div class="sw-card">', unsafe_allow_html=True)
+render_html(f"""
+<div class="sw-feature-row">
+    <div id="intro" class="sw-feature-card" style="--accent:{BRAND['coral']}; --accent-soft:rgba(241,88,53,0.08);">
+        <div class="ic">{icon("file-text", 22)}</div>
+        <h3>시험 소개</h3>
+        <p>AI 개념 이해 · AI와 문제해결 · AI 도구 및 플랫폼 사용 · 지도 계획안 작성, 4개 분야 총 80문제(객관식 72 + 주관식 8)로 구성됩니다. 제한시간은 90분이며 시간 초과 시 자동 제출됩니다.</p>
+    </div>
+    <div id="criteria" class="sw-feature-card" style="--accent:{BRAND['teal']}; --accent-soft:rgba(57,188,165,0.1);">
+        <div class="ic">{icon("target", 22)}</div>
+        <h3>합격 기준</h3>
+        <p>4개 분야 평균 60점 이상 + 모든 분야 50점 이상 획득 시 필기 합격입니다. 어느 한 분야라도 50점 미만이면 필기 탈락 처리됩니다. 필기 합격자에 한해 실기 심사가 진행됩니다.</p>
+    </div>
+    <div id="guide" class="sw-feature-card" style="--accent:{BRAND['orange']}; --accent-soft:rgba(247,142,29,0.1);">
+        <div class="ic">{icon("list-checks", 22)}</div>
+        <h3>응시 안내</h3>
+        <p>회원가입 후 이메일/비밀번호로 본인인증을 마치면 바로 응시할 수 있습니다. 아래 "본인인증" 영역에서 로그인 또는 회원가입을 진행해주세요.</p>
+    </div>
+</div>
+""")
+
+render_html("""
+<div class="sw-verify-heading">
+    <h2>본인 인증</h2>
+    <p>로그인 또는 회원가입 후 시험에 응시할 수 있습니다.</p>
+</div>
+""")
+
+st.markdown('<div id="verify"><div class="sw-card">', unsafe_allow_html=True)
 tab_login, tab_register = st.tabs(["로그인", "회원가입"])
 
 with tab_login:
@@ -188,6 +297,6 @@ with tab_register:
                 st.success("회원가입 완료! 로그인 탭에서 로그인해주세요.")
             else:
                 st.error(msg)
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div></div>', unsafe_allow_html=True)
 
 footer()
