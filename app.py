@@ -89,9 +89,9 @@ render_html(f"""
     color: {BRAND['orange']}; margin-bottom: 14px;
 }}
 .sw-hero2-title {{
-    font-family: 'Noto Serif KR', 'Pretendard', serif;
-    font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1.32;
-    margin-bottom: 14px; letter-spacing: -0.3px;
+    font-family: 'Black Han Sans', 'Pretendard', sans-serif;
+    font-size: 2.6rem; font-weight: 400; color: #fff; line-height: 1.35;
+    margin-bottom: 14px; letter-spacing: -0.2px;
 }}
 .sw-hero2-sub {{ font-size: 1.05rem; color: rgba(255,255,255,0.72); font-weight: 500; margin-bottom: 26px; }}
 .sw-hero2-graphic {{
@@ -128,6 +128,30 @@ a.sw-cta-link:hover {{ filter:brightness(1.06); transform:translateY(-1px); }}
 .sw-verify-heading {{ text-align:center; margin: 6px 0 18px 0; }}
 .sw-verify-heading h2 {{ font-size:1.5rem; font-weight:800; color:{BRAND['ink']}; margin:0 0 6px 0; }}
 .sw-verify-heading p {{ font-size:0.98rem; color:{BRAND['muted']}; margin:0; }}
+
+/* ── 모바일 대응: 히어로/랜딩 요소를 세로로 쌓고 여백·글자 축소 ────────── */
+@media (max-width: 768px) {{
+    .sw-hero2 {{ flex-direction: column !important; text-align: center !important; padding: 30px 20px !important; gap: 18px !important; }}
+    .sw-hero2-left {{ min-width: 0 !important; width: 100% !important; }}
+    .sw-hero2-eyebrow {{ font-size: 0.78rem !important; letter-spacing: 2px !important; }}
+    .sw-hero2-title {{ font-size: 1.85rem !important; }}
+    .sw-hero2-sub {{ font-size: 0.92rem !important; margin-bottom: 18px !important; }}
+    .sw-hero2-graphic {{ width: 108px !important; height: 108px !important; margin: 0 auto !important; }}
+    a.sw-cta-link {{ width: 100% !important; justify-content: center !important; font-size: 0.95rem !important; padding: 14px 18px !important; }}
+
+    .sw-landing-nav {{ gap: 8px !important; }}
+    .sw-landing-nav a {{ min-width: 72px !important; padding: 12px 6px !important; flex: 1 1 auto !important; }}
+    .sw-landing-nav a .ic {{ width: 36px !important; height: 36px !important; }}
+    .sw-landing-nav a span.lbl {{ font-size: 0.78rem !important; }}
+
+    .sw-feature-row {{ flex-direction: column !important; gap: 12px !important; }}
+    .sw-feature-card {{ min-width: 100% !important; padding: 20px 18px !important; }}
+
+    .welcome-box {{ flex-direction: column !important; text-align: center !important; padding: 22px 20px !important; gap: 12px !important; }}
+    .welcome-name {{ font-size: 1.25rem !important; }}
+
+    .sw-verify-heading h2 {{ font-size: 1.25rem !important; }}
+}}
 </style>
 """)
 

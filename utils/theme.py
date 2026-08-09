@@ -107,7 +107,7 @@ def inject_base_css():
     render_html(f"""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;800;900&family=Black+Han+Sans&display=swap');
 
     html {{ font-size: {root_px}px !important; }}
 
@@ -168,8 +168,8 @@ def inject_base_css():
         flex-shrink:0; box-shadow:0 8px 20px rgba(241,88,53,0.28);
     }}
     .sw-page-header h1 {{
-        font-family:'Noto Serif KR', 'Pretendard', serif; font-size:2.1rem; font-weight:800;
-        margin:0; letter-spacing:-0.3px; line-height:1.25;
+        font-family:'Black Han Sans', 'Pretendard', sans-serif; font-size:2rem; font-weight:400;
+        margin:0; letter-spacing:-0.2px; line-height:1.3;
     }}
     .sw-page-header p {{ font-size:1.05rem; color:{BRAND['muted']}; margin:5px 0 0 0; font-weight:500; }}
 
@@ -273,6 +273,43 @@ def inject_base_css():
     [data-testid="stMetricValue"] {{ font-size:1.6rem !important; font-weight:800 !important; }}
 
     .sw-footer {{ text-align:center; margin-top:44px; color:{BRAND['muted']}; font-size:0.88rem; font-weight:500; }}
+
+    /* ══════════════════════════════════════════════════════════════════
+       모바일 대응 (768px 이하) — 고정 패딩/최소너비가 좁은 화면에서
+       글자를 밀어내던 문제를 해결
+       ══════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {{
+        html {{ font-size: {round(root_px * 0.86, 1)}px !important; }}
+        .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; padding-top: 1rem !important; }}
+
+        .sw-navbar {{ padding: 14px 16px !important; border-radius: 14px !important; flex-wrap: wrap !important; row-gap: 10px; }}
+        .sw-navbar img {{ height: 32px !important; }}
+        .sw-chip {{ font-size: 0.82rem !important; padding: 6px 12px !important; }}
+
+        /* 글자 크기 조절 컨트롤: 컬럼 강제 세로 쌓기 + 세그먼트 줄바꿈 허용 */
+        .st-key-font_scale_ctrl [data-testid="stHorizontalBlock"] {{ flex-direction: column !important; }}
+        .st-key-font_scale_ctrl [data-testid="stColumn"] {{ width: 100% !important; min-width: 100% !important; }}
+        [data-testid="stSegmentedControl"] {{ flex-wrap: wrap !important; }}
+        [data-testid="stSegmentedControl"] label {{ flex: 1 1 auto !important; }}
+        .st-key-font_scale_ctrl [data-testid="stSegmentedControl"] label p {{ font-size:0.85rem !important; }}
+
+        .sw-page-header {{ gap: 14px !important; }}
+        .sw-page-header h1 {{ font-size: 1.5rem !important; }}
+        .sw-page-header p {{ font-size: 0.92rem !important; }}
+        .sw-icon-badge {{ min-width: 50px !important; width: 50px !important; height: 50px !important; border-radius: 14px !important; }}
+
+        .sw-card {{ padding: 20px 18px !important; border-radius: 14px !important; }}
+        .sw-info-strip {{ flex-direction: column !important; }}
+        .sw-info-pill {{ min-width: 100% !important; }}
+
+        .st-key-home_nav_row [data-testid="stBaseButton-secondary"],
+        .st-key-home_nav_row [data-testid="stBaseButton-primary"] {{
+            font-size: 1.02rem !important; min-height: 72px !important; padding: 16px 12px !important;
+        }}
+
+        [data-testid="stTab"] {{ font-size: 0.95rem !important; padding: 8px 3px !important; }}
+        [role="tablist"] {{ gap: 4px !important; }}
+    }}
     </style>
     """)
 
