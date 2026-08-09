@@ -273,6 +273,27 @@ render_html(f"""
 textarea {{
     font-size: 1.12rem !important;
 }}
+
+/* ── 모바일 대응: 탭/문제 글자 크기를 화면 폭에 맞게 축소 ─────────────────── */
+@media (max-width: 768px) {{
+    [data-testid="stTab"] {{
+        font-size: 0.98rem !important;
+        padding: 9px 12px !important;
+        margin-right: 4px !important;
+    }}
+    [data-testid="stMarkdownContainer"] p {{
+        font-size: 1.05rem !important;
+        line-height: 1.6 !important;
+    }}
+    .stRadio p, .stRadio label {{
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
+    }}
+    .stButton > button {{
+        font-size: 1rem !important;
+        padding: 0.7rem 0.9rem !important;
+    }}
+}}
 </style>
 """)
 

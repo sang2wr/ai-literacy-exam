@@ -309,6 +309,21 @@ def inject_base_css():
 
         [data-testid="stTab"] {{ font-size: 0.95rem !important; padding: 8px 3px !important; }}
         [role="tablist"] {{ gap: 4px !important; }}
+
+        /* st.columns()로 나란히 배치된 지표/버튼이 좁은 화면에서 찌그러지지 않도록
+           전부 세로로 쌓는다 (관리자 패널 점수 헤더, 결과 페이지 분야별 점수 등) */
+        [data-testid="stHorizontalBlock"] {{ flex-direction: column !important; gap: 10px !important; }}
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+            width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important;
+        }}
+
+        [data-testid="stMetric"] {{ padding: 12px 16px !important; }}
+        [data-testid="stMetricValue"] {{ font-size: 1.3rem !important; }}
+        [data-testid="stMetricLabel"] {{ font-size: 0.85rem !important; }}
+        [data-testid="stMetricDeltaIcon-Up"], [data-testid="stMetricDeltaIcon-Down"] {{ display:none !important; }}
+
+        [data-testid="stExpander"] summary {{ font-size: 0.95rem !important; padding: 10px 12px !important; }}
+        [data-testid="stExpander"] summary p {{ font-size: 0.95rem !important; }}
     }}
     </style>
     """)
