@@ -379,6 +379,13 @@ def info_pill(icon_name: str, label: str, value: str) -> str:
 
 
 def footer():
+    # 배포가 실제로 반영됐는지 로그인 없이 눈으로 대조할 수 있게 문제 파일 지문을 함께 표기
+    try:
+        from utils.questions import ACTIVE_VERSION, questions_fingerprint
+
+        stamp = f" · 문제 {ACTIVE_VERSION}-{questions_fingerprint()}"
+    except Exception:
+        stamp = ""
     render_html(f"""
-    <div class="sw-footer">© 주식회사 상상우리 · AI리터러시지도사 민간 자격 시험 공식 응시 플랫폼</div>
+    <div class="sw-footer">© 주식회사 상상우리 · AI리터러시지도사 민간 자격 시험 공식 응시 플랫폼{stamp}</div>
     """)

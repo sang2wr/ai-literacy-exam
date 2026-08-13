@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,3 +16,10 @@ def load_questions(version: str | None = None) -> list:
         path = QUESTIONS_DIR / f"questions_{version}.json"
         _cache[version] = json.loads(path.read_text(encoding="utf-8"))
     return _cache[version]
+
+
+def questions_fingerprint(version: str | None = None) -> str:
+    """문제 파일 내용의 지문(6자리). 배포 반영 여부를 화면에서 바로 대조하기 위한 값."""
+    version = version or ACTIVE_VERSION
+    path = QUESTIONS_DIR / f"questions_{version}.json"
+    return hashlib.sha1(path.read_bytes()).hexdigest()[:6]
