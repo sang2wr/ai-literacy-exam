@@ -134,15 +134,18 @@ def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes
     c.drawCentredString(cx, y_cur, _spaced(QUAL_NAME))
     y_cur -= 14 * mm
 
-    # 단일등급 배지
+    # 단일등급 배지 (badge_cy: 타원 세로 중심)
     badge_w, badge_h = 30 * mm, 8 * mm
+    badge_cy = y_cur - 2 * mm
     c.setStrokeColor(teal)
     c.setLineWidth(0.9)
-    c.roundRect(cx - badge_w / 2, y_cur - badge_h + 2 * mm, badge_w, badge_h, 4 * mm, stroke=1, fill=0)
+    c.roundRect(cx - badge_w / 2, badge_cy - badge_h / 2, badge_w, badge_h, 4 * mm, stroke=1, fill=0)
     c.setFont(GOTHIC, 10)
     c.setFillColor(teal)
-    c.drawCentredString(cx, y_cur - badge_h / 2 + 2.6 * mm, "단일등급")
-    y_cur -= badge_h + 10 * mm
+    # 한글 글자는 베이스라인 위로 그려지므로, 상자 정중앙에 시각적으로 오려면
+    # 베이스라인을 중심보다 살짝(글자 크기의 ~0.36배) 아래에 둬야 한다.
+    c.drawCentredString(cx, badge_cy - 0.36 * 10, "단일등급")
+    y_cur = badge_cy - badge_h / 2 - 10 * mm
 
     # ── 표: 성명 / 자격번호 / 취득일자 ──
     row_h = 12.5 * mm
@@ -179,29 +182,45 @@ def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes
     # ── 발급일 ──
     c.setFont(SERIF, 11)
     c.drawCentredString(cx, y_cur, issued_label)
-    y_cur -= 13 * mm
+    y_cur -= 18 * mm   # 아래 직인이 실물 크기(3cm)라 커서, 위 줄과 안 겹치게 여유를 더 둔다
 
     # ── 발급기관 · 대표이사 (직인은 이 두 줄에 걸치도록 오른쪽에 겹쳐 찍는다) ──
-    c.setFont(GOTHIC_BOLD, 15)
-    c.drawCentredString(cx, y_cur, ORG_NAME)
-    y_cur -= 8 * mm
+    org_font_size = 15
+    org_y = y_cur
+    c.setFont(GOTHIC_BOLD, org_font_size)
+    c.drawCentredString(cx, org_y, ORG_NAME)
+    org_half_w = stringWidth(ORG_NAME, GOTHIC_BOLD, org_font_size) / 2
+    ceo_y = org_y - 9 * mm
     c.setFont(SERIF, 11)
-    c.drawCentredString(cx, y_cur, f"대표이사   {ORG_CEO}")
+    c.drawCentredString(cx, ceo_y, f"대표이사   {ORG_CEO}")
 
+    seal_bottom = ceo_y
     try:
-        seal_size = 20 * mm
+        seal_size = 30 * mm   # 실제 인쇄 크기(가로세로 3cm)에 맞춤
+        seal_cx = cx + org_half_w + 3 * mm + seal_size / 2   # 기관명 글자 폭을 실측해서 겹치지 않게
+        seal_cx = min(seal_cx, right - seal_size / 2)        # 오른쪽 안전 여백선을 넘지 않도록
+        seal_cy = org_y - 2 * mm
+        seal_angle = 2  # 원본 이미지 자체가 살짝 시계방향으로 기울어 보여 반시계로 보정 (양수 = 반시계 방향)
+        c.saveState()
+        c.translate(seal_cx, seal_cy)
+        c.rotate(seal_angle)
         c.drawImage(
-            str(SEAL_PATH), cx + 24 * mm, y_cur - 6 * mm,
+            str(SEAL_PATH), -seal_size / 2, -seal_size / 2,
             width=seal_size, height=seal_size, preserveAspectRatio=True, mask="auto",
         )
+        c.restoreState()
+        seal_bottom = seal_cy - seal_size / 2
     except Exception:
         pass
-    y_cur -= 16 * mm
+    y_cur = min(ceo_y, seal_bottom) - 12 * mm
 
     # ── 하단 법정 고지 (짧게 줄여 모서리 여유를 확보) ──
+    # 주소를 발급기관 줄에 붙이면 어절 단위 줄바꿈에서 "11층"만 혼자 다음 줄로
+    # 떨어지는 경우가 있어(실제로 겪음) — 아예 별도 줄로 뺀다.
     footer_lines = [
         f"본 자격은 「자격기본법」에 따라 한국직업능력연구원에 등록된 민간자격입니다. (등록번호 {QUAL_REG_NO})",
-        f"자격관리·발급기관 {ORG_NAME} (사업자등록번호 {ORG_BIZ_NO}) · {ORG_ADDRESS}",
+        f"자격관리·발급기관 {ORG_NAME} (사업자등록번호 {ORG_BIZ_NO})",
+        ORG_ADDRESS,
         "자격 등록 여부는 민간자격정보서비스(www.pqi.or.kr)에서 확인하실 수 있습니다.",
     ]
     c.setFont(SERIF, 7.3)
