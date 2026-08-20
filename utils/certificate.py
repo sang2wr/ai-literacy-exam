@@ -31,6 +31,7 @@ from utils.theme import BRAND, logo_path
 ASSET_DIR = Path(__file__).resolve().parent.parent / "assets"
 FONT_DIR = ASSET_DIR / "fonts"
 SEAL_PATH = ASSET_DIR / "seal.png"
+WATERMARK_PATH = ASSET_DIR / "watermark.png"   # logo_icon.png를 알파 7%로 흐리게 미리 뽑아둔 것
 
 SERIF = "NanumMyeongjo"
 GOTHIC = "NanumGothic"
@@ -100,7 +101,6 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
     반환값은 마지막 줄이 끝난 y좌표(= 실제 하단 여백) — 상하 여백을 맞출 때 씀."""
     ink = HexColor(BRAND["ink"])
     teal = HexColor(BRAND["teal"])
-    muted = HexColor(BRAND["muted"])
 
     try:
         y, m, d = issued_date.split("-")
@@ -112,9 +112,19 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
     left, right = 42 * mm, W - 42 * mm   # 본문 좌우 기준선 (2.5cm 여백보다 더 안쪽 — 모서리 여유용)
     y_cur = _content_top_start(H) + y_shift
 
+    # ── 배경 워터마크 (다른 내용보다 먼저 그려서 맨 뒤로 깔린다) ──
+    try:
+        wm_size = 150 * mm
+        c.drawImage(
+            str(WATERMARK_PATH), cx - wm_size / 2, H / 2 - wm_size / 2,
+            width=wm_size, height=wm_size, preserveAspectRatio=True, mask="auto",
+        )
+    except Exception:
+        pass
+
     # ── 상단: 자격증 번호 · 등록번호 (가운데 정렬 한 줄 — 모서리를 피하려고 좌우로 안 쪼갠다) ──
     c.setFont(SERIF, 9.5)
-    c.setFillColor(muted)
+    c.setFillColor(ink)
     c.drawCentredString(cx, y_cur, f"제 {cert_no} 호   ·   등록민간자격 {QUAL_REG_NO}")
     y_cur -= 16 * mm
 
@@ -137,7 +147,7 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
     y_cur -= 12 * mm
 
     c.setFont(SERIF, 9)
-    c.setFillColor(muted)
+    c.setFillColor(ink)
     c.drawCentredString(cx, y_cur, f"자 격 종 목 · QUALIFICATION")
     y_cur -= 9 * mm
 
@@ -171,7 +181,7 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
         ry -= row_h
         c.line(left, ry, right, ry)
         c.setFont(SERIF, 11)
-        c.setFillColor(muted)
+        c.setFillColor(ink)
         c.drawString(left + 3 * mm, ry + row_h / 2 - 3.2 * mm, label)
         c.setFont(GOTHIC_BOLD, 13)
         c.setFillColor(ink)
@@ -204,7 +214,7 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
     org_half_w = stringWidth(ORG_NAME, GOTHIC_BOLD, org_font_size) / 2
     ceo_y = org_y - 9 * mm
     c.setFont(SERIF, 11)
-    c.drawCentredString(cx, ceo_y, f"대표이사   {ORG_CEO}")
+    c.drawCentredString(cx, ceo_y, f"대표   {ORG_CEO}")
 
     seal_bottom = ceo_y
     try:
@@ -236,7 +246,7 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y
         "자격 등록 여부는 민간자격정보서비스(www.pqi.or.kr)에서 확인하실 수 있습니다.",
     ]
     c.setFont(SERIF, 7.3)
-    c.setFillColor(muted)
+    c.setFillColor(ink)
     max_w = right - left
     for para in footer_lines:
         for line in _wrap(para, SERIF, 7.3, max_w):
