@@ -7,7 +7,7 @@ from utils.database import (
     get_all_certificates, get_certificate_by_exam, backfill_certificates,
 )
 from utils.questions import load_questions, ACTIVE_VERSION
-from utils.certificate import generate_certificate_pdf
+from utils.certificate import generate_certificate_pdf, generate_certificates_batch_pdf
 import json
 from datetime import datetime
 from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
@@ -486,6 +486,29 @@ with tab4:
         st.info("발급된 자격증이 없습니다.")
     else:
         st.markdown(f"**총 {len(certs)}건 발급**")
+
+        # ── 일괄 출력용 병합 PDF (발급번호 순으로 한 파일에 이어 붙임) ──
+        certs_sorted = sorted(certs, key=lambda c: c["cert_no"])
+        batch_entries = []
+        for cert in certs_sorted:
+            u = cert.get("users") or {}
+            issued_at = cert.get("issued_at", "")
+            try:
+                issued_label = datetime.fromisoformat(issued_at.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+            except Exception:
+                issued_label = issued_at[:10]
+            batch_entries.append((u.get("name", "-"), cert["cert_no"], issued_label))
+
+        batch_pdf = generate_certificates_batch_pdf(batch_entries)
+        st.download_button(
+            f"전체 {len(batch_entries)}건 한 파일로 다운로드 (인쇄용, 발급번호 순)",
+            data=batch_pdf,
+            file_name=f"AI리터러시지도사_자격증_전체_{len(batch_entries)}건.pdf",
+            mime="application/pdf",
+            type="primary",
+        )
+        st.divider()
+
         for cert in certs:
             u = cert.get("users") or {}
             issued_at = cert.get("issued_at", "")

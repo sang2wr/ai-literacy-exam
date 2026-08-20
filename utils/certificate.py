@@ -78,14 +78,9 @@ def _wrap(text: str, font: str, size: float, max_width: float) -> list:
     return lines
 
 
-def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes:
-    """name: 수여자 성명 / cert_no: 예 '2026-001' / issued_date: 'YYYY-MM-DD'"""
-    _ensure_fonts()
-
-    buf = BytesIO()
-    W, H = A4  # 세로: 210 x 297mm
-    c = canvas.Canvas(buf, pagesize=(W, H))
-
+def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
+    """캔버스 한 페이지에 자격증 한 장을 그린다. showPage/save는 호출부 책임 —
+    일괄 출력(batch)에서는 여러 사람을 한 Canvas에 이어 그려야 하기 때문이다."""
     ink = HexColor(BRAND["ink"])
     teal = HexColor(BRAND["teal"])
     muted = HexColor(BRAND["muted"])
@@ -231,7 +226,30 @@ def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes
             c.drawCentredString(cx, y_cur, line)
             y_cur -= 3.6 * mm
 
+
+def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes:
+    """name: 수여자 성명 / cert_no: 예 '2026-001' / issued_date: 'YYYY-MM-DD'"""
+    _ensure_fonts()
+    buf = BytesIO()
+    W, H = A4  # 세로: 210 x 297mm
+    c = canvas.Canvas(buf, pagesize=(W, H))
+    _draw_certificate_page(c, W, H, name, cert_no, issued_date)
     c.showPage()
+    c.save()
+    buf.seek(0)
+    return buf.read()
+
+
+def generate_certificates_batch_pdf(entries) -> bytes:
+    """합격자 여러 명의 자격증을 한 PDF에 이어 붙인다 — 한 번에 인쇄하기 위한 용도.
+    entries: [(name, cert_no, issued_date), ...]. 발급번호 순으로 미리 정렬해서 넘길 것."""
+    _ensure_fonts()
+    buf = BytesIO()
+    W, H = A4
+    c = canvas.Canvas(buf, pagesize=(W, H))
+    for name, cert_no, issued_date in entries:
+        _draw_certificate_page(c, W, H, name, cert_no, issued_date)
+        c.showPage()
     c.save()
     buf.seek(0)
     return buf.read()
