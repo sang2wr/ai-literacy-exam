@@ -78,9 +78,26 @@ def _wrap(text: str, font: str, size: float, max_width: float) -> list:
     return lines
 
 
-def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
+class _NullCanvas:
+    """실제로 그리지 않고 y_cur 흐름만 재현하기 위한 가짜 캔버스 —
+    상하 여백을 맞추려면 그리기 전에 콘텐츠가 어디서 끝나는지 먼저 알아야 한다."""
+    def __getattr__(self, _name):
+        return lambda *a, **kw: None
+
+
+def _content_top_start(H) -> float:
+    return H - 46 * mm   # 상단: 3cm 여백 + 모서리 대각선 여유를 더한 시작점
+
+
+def _measure_bottom_margin(W, H, name: str, cert_no: str, issued_date: str) -> float:
+    """콘텐츠를 실제로 그리지 않고 마지막 줄이 페이지 하단에서 얼마나 떨어지는지만 계산한다."""
+    return _draw_certificate_page(_NullCanvas(), W, H, name, cert_no, issued_date)
+
+
+def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str, y_shift: float = 0) -> float:
     """캔버스 한 페이지에 자격증 한 장을 그린다. showPage/save는 호출부 책임 —
-    일괄 출력(batch)에서는 여러 사람을 한 Canvas에 이어 그려야 하기 때문이다."""
+    일괄 출력(batch)에서는 여러 사람을 한 Canvas에 이어 그려야 하기 때문이다.
+    반환값은 마지막 줄이 끝난 y좌표(= 실제 하단 여백) — 상하 여백을 맞출 때 씀."""
     ink = HexColor(BRAND["ink"])
     teal = HexColor(BRAND["teal"])
     muted = HexColor(BRAND["muted"])
@@ -93,13 +110,13 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
 
     cx = W / 2
     left, right = 42 * mm, W - 42 * mm   # 본문 좌우 기준선 (2.5cm 여백보다 더 안쪽 — 모서리 여유용)
-    y_cur = H - 46 * mm                  # 상단부터: 3cm 여백 + 모서리 대각선 여유를 더한 시작점
+    y_cur = _content_top_start(H) + y_shift
 
     # ── 상단: 자격증 번호 · 등록번호 (가운데 정렬 한 줄 — 모서리를 피하려고 좌우로 안 쪼갠다) ──
     c.setFont(SERIF, 9.5)
     c.setFillColor(muted)
     c.drawCentredString(cx, y_cur, f"제 {cert_no} 호   ·   등록민간자격 {QUAL_REG_NO}")
-    y_cur -= 22 * mm
+    y_cur -= 16 * mm
 
     # ── 로고 아이콘 ──
     try:
@@ -172,12 +189,12 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
     for line in body_lines:
         c.drawCentredString(cx, y_cur, line)
         y_cur -= 6.8 * mm
-    y_cur -= 8 * mm
+    y_cur -= 6 * mm
 
     # ── 발급일 ──
     c.setFont(SERIF, 11)
     c.drawCentredString(cx, y_cur, issued_label)
-    y_cur -= 18 * mm   # 아래 직인이 실물 크기(3cm)라 커서, 위 줄과 안 겹치게 여유를 더 둔다
+    y_cur -= 15 * mm   # 아래 직인이 실물 크기(3cm)라 커서, 위 줄과 안 겹치게 여유를 더 둔다
 
     # ── 발급기관 · 대표이사 (직인은 이 두 줄에 걸치도록 오른쪽에 겹쳐 찍는다) ──
     org_font_size = 15
@@ -207,7 +224,7 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
         seal_bottom = seal_cy - seal_size / 2
     except Exception:
         pass
-    y_cur = min(ceo_y, seal_bottom) - 12 * mm
+    y_cur = min(ceo_y, seal_bottom) - 10 * mm
 
     # ── 하단 법정 고지 (짧게 줄여 모서리 여유를 확보) ──
     # 주소를 발급기관 줄에 붙이면 어절 단위 줄바꿈에서 "11층"만 혼자 다음 줄로
@@ -224,7 +241,18 @@ def _draw_certificate_page(c, W, H, name: str, cert_no: str, issued_date: str):
     for para in footer_lines:
         for line in _wrap(para, SERIF, 7.3, max_w):
             c.drawCentredString(cx, y_cur, line)
-            y_cur -= 3.6 * mm
+            y_cur -= 3.4 * mm
+
+    return y_cur
+
+
+def _balancing_shift(W, H, name: str, cert_no: str, issued_date: str) -> float:
+    """상단 여백과 하단 여백이 같아지도록 콘텐츠 전체를 위로 밀어올릴 양을 계산한다.
+    (아래로 밀 필요가 생기는 경우, 즉 콘텐츠가 원래도 짧아서 하단이 더 넉넉한 경우는
+    상단의 모서리 안전 여백을 침범하게 되므로 밀지 않는다 — 0 이하는 버림.)"""
+    top_margin = H - _content_top_start(H)
+    bottom_margin = _measure_bottom_margin(W, H, name, cert_no, issued_date)
+    return max(0.0, (top_margin - bottom_margin) / 2)
 
 
 def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes:
@@ -233,7 +261,8 @@ def generate_certificate_pdf(name: str, cert_no: str, issued_date: str) -> bytes
     buf = BytesIO()
     W, H = A4  # 세로: 210 x 297mm
     c = canvas.Canvas(buf, pagesize=(W, H))
-    _draw_certificate_page(c, W, H, name, cert_no, issued_date)
+    shift = _balancing_shift(W, H, name, cert_no, issued_date)
+    _draw_certificate_page(c, W, H, name, cert_no, issued_date, y_shift=shift)
     c.showPage()
     c.save()
     buf.seek(0)
@@ -248,7 +277,8 @@ def generate_certificates_batch_pdf(entries) -> bytes:
     W, H = A4
     c = canvas.Canvas(buf, pagesize=(W, H))
     for name, cert_no, issued_date in entries:
-        _draw_certificate_page(c, W, H, name, cert_no, issued_date)
+        shift = _balancing_shift(W, H, name, cert_no, issued_date)
+        _draw_certificate_page(c, W, H, name, cert_no, issued_date, y_shift=shift)
         c.showPage()
     c.save()
     buf.seek(0)
