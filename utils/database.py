@@ -293,15 +293,15 @@ def get_all_certificates() -> List[Dict]:
 
 
 def _next_cert_no() -> str:
-    """연도별 순번으로 자격증 번호를 만든다. 예: AILT-2026-0001"""
+    """연도별 순번으로 자격증 번호를 만든다. 예: 2026-001 (증서에는 '제 2026-001 호'로 표기)"""
     year = datetime.now(timezone.utc).year
-    prefix = f"AILT-{year}-"
+    prefix = f"{year}-"
     try:
         res = get_client().table("certificates").select("cert_no").like("cert_no", f"{prefix}%").execute()
         seq = len(res.data or []) + 1
     except Exception:
         seq = 1
-    return f"{prefix}{seq:04d}"
+    return f"{prefix}{seq:03d}"
 
 
 def issue_certificate(user_id: str, exam_id: str) -> Optional[Dict]:
