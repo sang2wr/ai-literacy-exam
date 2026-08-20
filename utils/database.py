@@ -204,6 +204,7 @@ def get_exam_by_id(exam_id: str) -> Optional[Dict]:
 
 def delete_exam(exam_id: str) -> bool:
     try:
+        get_client().table("certificates").delete().eq("exam_id", exam_id).execute()
         get_client().table("answers").delete().eq("exam_id", exam_id).execute()
         get_client().table("exams").delete().eq("id", exam_id).execute()
         return True
@@ -220,7 +221,8 @@ def update_practical_score(
     sa_scores_dict: Dict[int, int],          # {area_id: area_sa_total}
     sa_scores_per_q: Optional[Dict] = None,  # {question_id: score 0-5}
 ) -> bool:
-    """Save scores, calculate per-area totals, and determine written_result."""
+    """Save scores, calculate per-area totals, and determine written_result.
+    최종 합격(필기 합격 + 실기 합격)이면 자격증을 자동으로 발급한다."""
     try:
         sa_score_total = sum(sa_scores_dict.values())
         area_mc = get_area_mc_scores(exam_id)
@@ -238,7 +240,95 @@ def update_practical_score(
             "total_score": practical_score or 0,
             "status": "graded",
         }).eq("id", exam_id).execute()
+
+        if written_result == "합격" and practical_result == "합격":
+            exam_row = get_exam_by_id(exam_id)
+            if exam_row:
+                issue_certificate(exam_row["user_id"], exam_id)
+
         return True
     except Exception as e:
         st.error(f"저장 오류: {e}")
         return False
+
+
+# ── Certificate ───────────────────────────────────────────────────────────────
+
+def get_certificate_by_exam(exam_id: str) -> Optional[Dict]:
+    try:
+        res = get_client().table("certificates").select("*").eq("exam_id", exam_id).limit(1).execute()
+        return res.data[0] if res.data else None
+    except Exception:
+        return None
+
+
+def get_certificate_by_user(user_id: str) -> Optional[Dict]:
+    try:
+        res = (
+            get_client()
+            .table("certificates")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("issued_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return res.data[0] if res.data else None
+    except Exception:
+        return None
+
+
+def get_all_certificates() -> List[Dict]:
+    try:
+        res = (
+            get_client()
+            .table("certificates")
+            .select("*, users(name, email, phone)")
+            .order("issued_at", desc=True)
+            .execute()
+        )
+        return res.data or []
+    except Exception:
+        return []
+
+
+def _next_cert_no() -> str:
+    """연도별 순번으로 자격증 번호를 만든다. 예: AILT-2026-0001"""
+    year = datetime.now(timezone.utc).year
+    prefix = f"AILT-{year}-"
+    try:
+        res = get_client().table("certificates").select("cert_no").like("cert_no", f"{prefix}%").execute()
+        seq = len(res.data or []) + 1
+    except Exception:
+        seq = 1
+    return f"{prefix}{seq:04d}"
+
+
+def issue_certificate(user_id: str, exam_id: str) -> Optional[Dict]:
+    """최종 합격자에게 자격증을 발급한다. 이미 발급돼 있으면 새로 만들지 않고 그대로 반환한다(멱등)."""
+    existing = get_certificate_by_exam(exam_id)
+    if existing:
+        return existing
+    try:
+        res = get_client().table("certificates").insert({
+            "user_id": user_id,
+            "exam_id": exam_id,
+            "cert_no": _next_cert_no(),
+        }).execute()
+        return res.data[0]
+    except Exception:
+        # cert_no 중복 등으로 실패했으면 그사이 다른 경로로 이미 만들어졌는지 다시 확인
+        return get_certificate_by_exam(exam_id)
+
+
+def backfill_certificates() -> int:
+    """이 기능이 생기기 전에 이미 최종 합격 처리된 응시자에게 자격증을 소급 발급한다.
+    새로 발급된 건수를 반환한다."""
+    exams = get_all_exams_with_users()
+    issued = 0
+    for e in exams:
+        if e.get("written_result") == "합격" and e.get("practical_result") == "합격":
+            if not get_certificate_by_exam(e["id"]):
+                if issue_certificate(e["user_id"], e["id"]):
+                    issued += 1
+    return issued

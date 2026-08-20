@@ -1,8 +1,12 @@
 import streamlit as st
 import json
 from datetime import datetime
-from utils.database import get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result
+from utils.database import (
+    get_user_exams, get_exam_answers, get_area_mc_scores, calculate_written_result,
+    get_certificate_by_exam,
+)
 from utils.questions import load_questions
+from utils.certificate import generate_certificate_pdf
 from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, footer, logo_path, BRAND
 
 st.set_page_config(
@@ -59,6 +63,27 @@ for exam in submitted:
         if exam["status"] == "graded":
             if p_result == "합격" and written_result == "합격":
                 st.success("최종 합격! 필기 합격 + 실기 합격")
+
+                cert = get_certificate_by_exam(exam["id"])
+                if cert:
+                    issued_at = cert.get("issued_at", "")
+                    try:
+                        issued_dt = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+                        issued_label = issued_dt.strftime("%Y-%m-%d")
+                    except Exception:
+                        issued_label = issued_at[:10]
+
+                    st.markdown(f"**자격증 발급번호** {cert['cert_no']}  (발급일 {issued_label})")
+                    pdf_bytes = generate_certificate_pdf(user["name"], cert["cert_no"], issued_label)
+                    st.download_button(
+                        "자격증 PDF 다운로드",
+                        data=pdf_bytes,
+                        file_name=f"AI리터러시지도사_자격증_{user['name']}.pdf",
+                        mime="application/pdf",
+                        key=f"cert_dl_{exam['id']}",
+                    )
+                else:
+                    st.info("자격증을 준비 중입니다. 잠시 후 다시 확인해 주세요.")
             elif written_result == "합격" and not p_result:
                 st.info("필기 합격 — 실기 시험 대상자입니다.")
             elif written_result == "탈락":

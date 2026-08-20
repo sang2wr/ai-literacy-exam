@@ -4,8 +4,10 @@ from utils.database import (
     get_all_exams_with_users, get_exam_answers, update_practical_score,
     delete_exam, get_area_mc_scores, calculate_written_result,
     get_in_progress_exams_with_users,
+    get_all_certificates, get_certificate_by_exam, backfill_certificates,
 )
 from utils.questions import load_questions, ACTIVE_VERSION
+from utils.certificate import generate_certificate_pdf
 import json
 from datetime import datetime
 from utils.theme import inject_base_css, navbar, font_scale_control, page_header, icon, info_pill, footer, logo_path, BRAND, render_html
@@ -48,7 +50,7 @@ render_html(f"""
 </div>
 """)
 
-tab1, tab2, tab3 = st.tabs(["전체 결과 목록", "점수 입력 / 채점", "정답표"])
+tab1, tab2, tab3, tab4 = st.tabs(["전체 결과 목록", "점수 입력 / 채점", "정답표", "자격증"])
 
 # ── Tab 1: Summary table ──────────────────────────────────────────────────────
 with tab1:
@@ -81,6 +83,7 @@ with tab1:
                     "탈락" if written == "탈락" else "-"
                 )
             )
+            cert = get_certificate_by_exam(e["id"]) if final == "최종합격" else None
             rows.append({
                 "ID": e["id"][:8] + "...",
                 "이름": u.get("name", "-"),
@@ -94,6 +97,7 @@ with tab1:
                 "실기점수": e.get("practical_score") or "-",
                 "실기결과": p_result,
                 "최종결과": final,
+                "자격증번호": cert["cert_no"] if cert else ("미발급" if final == "최종합격" else "-"),
             })
         df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -461,5 +465,64 @@ with tab3:
         file_name="정답표.csv",
         mime="text/csv",
     )
+
+# ── Tab 4: 자격증 ─────────────────────────────────────────────────────────────
+with tab4:
+    st.caption(
+        "필기 합격 + 실기 합격으로 채점을 저장하면 자격증이 자동으로 발급됩니다. "
+        "이 탭은 발급 현황 확인 · 개별 재다운로드 · 이 기능이 생기기 전 최종합격자 소급 발급용입니다."
+    )
+
+    if st.button("소급 발급 확인 (이미 발급된 건은 건드리지 않음)", key="backfill_cert"):
+        n = backfill_certificates()
+        if n:
+            st.success(f"{n}건 신규 발급했습니다.")
+        else:
+            st.info("새로 발급할 대상이 없습니다. (이미 모두 발급됨)")
+        st.cache_data.clear()
+
+    certs = get_all_certificates()
+    if not certs:
+        st.info("발급된 자격증이 없습니다.")
+    else:
+        st.markdown(f"**총 {len(certs)}건 발급**")
+        for cert in certs:
+            u = cert.get("users") or {}
+            issued_at = cert.get("issued_at", "")
+            try:
+                issued_label = datetime.fromisoformat(issued_at.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+            except Exception:
+                issued_label = issued_at[:10]
+
+            col_info, col_dl = st.columns([5, 1])
+            with col_info:
+                st.markdown(f"**{cert['cert_no']}**  —  {u.get('name','-')} ({u.get('email','-')})  |  발급일 {issued_label}")
+            with col_dl:
+                pdf_bytes = generate_certificate_pdf(u.get("name", "-"), cert["cert_no"], issued_label)
+                st.download_button(
+                    "PDF",
+                    data=pdf_bytes,
+                    file_name=f"AI리터러시지도사_자격증_{u.get('name','-')}.pdf",
+                    mime="application/pdf",
+                    key=f"admin_cert_dl_{cert['id']}",
+                )
+
+        cert_csv_rows = [
+            {
+                "자격증번호": c["cert_no"],
+                "이름": (c.get("users") or {}).get("name", "-"),
+                "이메일": (c.get("users") or {}).get("email", "-"),
+                "연락처": (c.get("users") or {}).get("phone", "-"),
+                "발급일": (c.get("issued_at") or "")[:10],
+            }
+            for c in certs
+        ]
+        cert_csv = pd.DataFrame(cert_csv_rows).to_csv(index=False, encoding="utf-8-sig")
+        st.download_button(
+            "발급 명단 CSV 다운로드",
+            data=cert_csv,
+            file_name="자격증_발급명단.csv",
+            mime="text/csv",
+        )
 
 footer()
