@@ -94,7 +94,7 @@ with tab1:
                 "MC(점)": mc_pts,
                 "SA(점)": sa_pts,
                 "필기결과": written,
-                "실기점수": e.get("practical_score") or "-",
+                "실기점수": str(e["practical_score"]) if e.get("practical_score") is not None else "-",
                 "실기결과": p_result,
                 "최종결과": final,
                 "자격증번호": cert["cert_no"] if cert else ("미발급" if final == "최종합격" else "-"),
